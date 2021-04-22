@@ -1,0 +1,38 @@
+#include "Protheus.ch"
+#include "Rwmake.ch"
+
+/*
+   Objetivo.....: Validar referencias duplicadas na alteração do produto.
+*/
+
+User Function AGESTE03
+  Local cAlias  := Alias()
+  Local lRet    := .T.
+  Local c_Ref   := M->B1_XCODFAB
+  Local n_Recno := SB1->(Recno())
+                                
+  If altera //- Se for alteração
+     cQry := "SELECT SB1.R_E_C_N_O_ SB1RECNO " 
+     cQry += "FROM "+RetSqlName("SB1")+" SB1 " 
+     cQry += "WHERE SB1.D_E_L_E_T_ <> '*' "
+     cQry += "AND B1_FILIAL = '"+xFilial("SB1")+"' "
+     cQry += "AND B1_XCODFAB = '"+c_Ref+"' "  
+  
+     dbUseArea(.T.,"TOPCONN",TcGenQry(,,ChangeQuery(cQry)),"XXX",.T.,.T.)
+     DbGotop()
+  
+     Do While !XXX->(Eof())
+        If XXX->SB1RECNO <> n_Recno
+           lRet:= .F.   
+           Exit
+        Endif
+        XXX->(DbSkip())
+     Enddo     
+     If !lRet
+        Msginfo("Referência já cadastrada.", "Aviso")     
+        c_Ref:= Space(15)   
+     Endif
+     XXX->(dbCloseArea())
+  Endif   
+  dbSelectArea(cAlias)
+Return c_Ref

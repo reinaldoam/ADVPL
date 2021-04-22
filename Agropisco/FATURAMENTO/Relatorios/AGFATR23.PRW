@@ -1,0 +1,631 @@
+#INCLUDE "rwmake.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³AGFATR23  º Autor ³ REINALDO MAGALHAES º Data ³  01/11/17   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³ FOLHA DE PAGAMENTO DE VENDEDORES NOVO MODELO               º±±
+±±º          ³ Versão 3.0                                                 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP6 IDE                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+User Function AGFATR23
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Declaracao de Variaveis                                             ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  Local cDesc1     := "Este programa tem como objetivo imprimir relatorio "
+  Local cDesc2     := "de acordo com os parametros informados pelo usuario."
+  Local cDesc3     := "FOLHA DE VENDEDORES - Versão 3.0"
+  Local cPict      := ""
+  Local titulo     := ""
+  Local nLin       := 180
+  Local Cabec1     := ""  
+  Local Cabec2     := ""
+  Local imprime    := .T.
+  Local aOrd       := {}
+  Local aVendaCom  := {}
+
+  Private lEnd       := .F.
+  Private lAbortPrint:= .F.
+  Private CbTxt      := ""
+  Private limite     := 80
+  Private tamanho    := "G"
+  Private nomeprog   := "AGFATR23" // Coloque aqui o nome do programa para impressao no cabecalho
+  Private nTipo      := 18
+  Private aReturn    := { "Zebrado", 1, "Administracao", 2, 2, 1, "", 1}
+  Private nLastKey   := 0
+  Private cbtxt      := Space(10)
+  Private cbcont     := 00
+  Private CONTFL     := 01
+  Private m_pag      := 01
+  Private wnrel      := "AGFATR23" // Coloque aqui o nome do arquivo usado para impressao em disco
+  Private cPerg      := "FATR21" 
+
+  Private cString   := "SD2"                         
+ 
+  //alert("NOVO")
+
+  dbSelectArea("SB1")
+  U_MsSetOrder("SB1","B1_FILIAL+B1_COD")//Incluido por Ulisses Jr em 24/04/08 em substituição as linhas acima
+
+  dbSelectArea("SA3")
+  U_MsSetOrder("SA3","A3_FILIAL+A3_COD")
+
+  dbSelectArea("SD2")
+  U_MsSetOrder("SD2","D2_FILIAL+D2_COD+D2_LOCAL+D2_NUMSEQ")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+
+  Pergunte(cPerg,.F.)  
+  
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Monta a interface padrao com o usuario...                           ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  wnrel := SetPrint(cString,NomeProg,cPerg,@titulo,cDesc1,cDesc2,cDesc3,.T.,aOrd,.T.,Tamanho,,.T.)
+  If nLastKey == 27
+     Return                               
+  Endif
+  SetDefault(aReturn,cString)
+
+  Titulo:= "FOLHA DE VENDEDORES DE " + Dtoc(mv_par03) + " A " +  Dtoc(mv_par04)
+             
+  //          0	        1		  2		    3	      4         5         6         7         8         9        10        11        12        13        14        15        16        17        18        19        20
+  //		  0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+  Cabec1 := "VEND    NOME                           FAT. -----  FAT. ----   FAT. ----   FAT. -----  FAT. -----  TOTAL-----  COMISSAO    (%)   COMISSAO--   (%)    COMISSAO--   (%)    COMISSAO     (%)    VALOR----   COMISSAO--"
+  Cabec2 := "                                       PC BALCAO-  PC SERVIC-  EQUIPAMEN.  SERVICOS--  LOCACAO---  FATURADO--  PECAS             EQUIPAMENT          SERVICO---          LOCACAO---          EXTRA----   A PAGAR---"
+  //          999999  XXXXXXXXXXXXXXXXXXXXXXXXXXXX  999,999.99  999,999.99  999,999.99  999,999.99  999,999.99  999,999.99  999,999.99 999.99 999,999.99  999.99  999,999.99  999.99  999,999.99  999.99  999,999.99  999,999.99
+
+  If nLastKey == 27
+     Return
+  Endif
+
+  nTipo := If(aReturn[4]==1,15,18)
+
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Processamento. RPTSTATUS monta janela com a regua de processamento. ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  RptStatus({|| RunReport(Cabec1,Cabec2,Titulo,nLin) },Titulo)
+  
+Return
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºFun‡„o    ³RUNREPORT º Autor ³ AP6 IDE            º Data ³  02/01/08   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescri‡„o ³ Funcao auxiliar chamada pela RPTSTATUS. A funcao RPTSTATUS º±±
+±±º          ³ monta a janela com a regua de processamento.               º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ Programa principal                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+Static Function RunReport(Cabec1,Cabec2,Titulo,nLinII)
+  Local aVendaCom := {}
+  Local aFolha    := {}                                           
+
+  Local nVgPCBalc := 0.00 //- Peças Balcao
+  Local nVgPCServ := 0.00 //- Peças Serviço
+  Local nVgEquipa := 0.00 //- Equipamento
+  Local nVgServic := 0.00 //- Serviço
+  Local nVgLocaca := 0.00 //- Locação
+  Local nVgTotal  := 0.00 //- Total
+  Local nCgPeca   := 0.00 //- Comissão Peças
+  Local nCgEquipa := 0.00 //- Comissão Equipamento 
+  Local nCgServic := 0.00 //- Comissão Serviço 
+  Local nCgLocaca := 0.00 //- Comissão Locação
+  Local nCgExtra  := 0.00 //- Valores extra
+  Local nCgPagar  := 0.00 //- Valor de comissão a pagar 
+  Local nValFat   := 0.00 //- Faturamento mensal de peças e 
+
+  Private nRegis   := 0
+  Private cAuxDoc  := ""
+  Private cAuxSer  := ""
+  Private cAuxTES  := ""
+  Private cAuxVend := ""
+  Private nType    := 0
+  
+  Private nLin     := 180 
+
+  Private cCfPeca  := getmv("MV_CFPECA")
+  Private cCfServ  := getmv("MV_CFSERV")
+  Private cTesLoca := getmv("MV_TESLOCA")
+  Private lImp 	   := .F.
+
+  Private nMETFAT  := getmv("MV_XMETFAT") //- Meta de faturamento (peças + equipamentos)
+  
+  //- Percentuais de comissão para vendas abaixo da meta
+  Private nMINPC   := getmv("MV_XMINPC")  //- Percentual de comissão de peças < meta -> 1%
+  Private nMINEQ   := getmv("MV_XMINEQ")  //- Percentual de comissão equipamentos > meta -> 0,5%
+
+  //- Percentuais de comissão para vendas acima da meta
+  Private nMAXPC   := getmv("MV_XMAXPC")  //- Percentual de comissão de peças >= meta -> 2%
+  Private nMAXEQ   := getmv("MV_XMAXEQ")  //- Percentual de comissão equipamentos >= meta -> 1%
+  
+  Private nCOMSER  := getmv("MV_XCOMSER") //- Percentual de comissão sobre serviços -> 0,5%
+  Private nCOMLOC  := getmv("MV_XCOMLOC") //- Percentual de comissão sobre locação -> 3% 
+  Private nCOMEXT  := getmv("MV_XCOMEXT") //- Percentual de comissão extra sobre peças + equipamentos -> 0,1%   
+  
+  Private cVendBlq := getmv("MV_XVENBLQ") //- Define se vendedores bloqueados irão sair no relatorio de comissão.
+
+  Private aDevoluc := {}
+
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Carregando matriz de vendedores  ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  SA3->(DbGotop())
+  Do While !SA3->(Eof())
+     If SA3->A3_MSBLQL <> "1" .Or. cVendBlq = "1" //- Verifica se vendedores bloqueados irão sair no relatorio
+        AADD(aFolha, {SA3->A3_COD,SA3->A3_NREDUZ, 0.00, 0.00, 0.00, 0.00,	0.00, 0.00,	0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, SA3->A3_XSEGMEN })
+     Endif
+     SA3->(DbSkip())
+  Enddo   
+ 
+  dbSelectArea(cString)
+  dbSetOrder(1)
+            
+  mv_par03:= Dtos(mv_par03)
+  mv_par04:= Dtos(mv_par04)
+  
+  DevForaPrz() //- Devoluções fora do prazo de comissão
+
+  MontaQry()
+
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ SETREGUA -> Indica quantos registros serao processados para a regua ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  SetRegua(XXX->(Lastrec()))
+
+  dbGoTop()
+
+  Do While !XXX->(EOF())
+
+     IncRegua()    
+      
+     If cAuxDoc <> XXX->D2_DOC .Or. cAuxSer <> XXX->D2_SERIE
+
+        SA3->(DbSeek(xFilial("SA3")+XXX->F2_VEND1))
+        
+        aVendaCom := QryVend(XXX->F2_DOC,XXX->F2_SERIE,XXX->F2_CLIENTE,XXX->F2_LOJA,SA3->A3_XSEGMEN)  
+        
+        //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+        //³ Regra para cálculo de percentual de comissão baseado em acrescimo ³
+        //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+        If !Empty(XXX->F2_VEND1)
+	       nPos:= aScan(aFolha,{|x| x[1] = XXX->F2_VEND1 })
+	       If nPos > 0 
+	          aFolha[nPos][3] += aVendaCom[1][1] //- Peças balcão
+  	          aFolha[nPos][4] += aVendaCom[1][2] //- Peças serviços
+	          aFolha[nPos][5] += aVendaCom[1][3] //- Equipamentos
+	          aFolha[nPos][6] += aVendaCom[1][4] //- Serviços
+	          aFolha[nPos][7] += aVendaCom[1][5] //- Locação                
+	          aFolha[nPos][8] += aVendaCom[1][6] //- Total                
+	       Endif   
+        Endif
+     Endif        
+     cAuxDoc  := XXX->D2_DOC
+     cAuxTES  := XXX->D2_CF
+     cAuxSer  := XXX->D2_SERIE                                       
+     cAuxVend := XXX->F2_VEND1 
+     XXX->(dbSkip()) // Avanca o ponteiro do registro no arquivo
+  Enddo
+  XXX->(dbCloseArea())
+
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Abatendo valor das devoluções  ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  For i := 1 to Len(aFolha)
+     nPos := aScan(aDevoluc,{|x| x[1] = aFolha[i][1] })
+     If nPos > 0
+        aFolha[i][3] -= aDevoluc[nPos][2] //- Peças balcão
+  	    aFolha[i][4] -= aDevoluc[nPos][3] //- Peças serviços
+	    aFolha[i][5] -= aDevoluc[nPos][4] //- Equipamentos
+	    aFolha[i][6] -= aDevoluc[nPos][5] //- Serviços
+	    aFolha[i][7] -= aDevoluc[nPos][6] //- Locação                
+	    aFolha[i][8] -= aDevoluc[nPos][7] //- Total                
+     Endif
+  Next   
+  
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Regra para cálculo de comissão  ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  //Matriz aFolha
+  //*1=VENDEDOR*2=NOME*3=VALOR PC BALCAO*4=VALOR PC SERVICO*5=VALOR EQUIPAMENTO*6=VALOR SERVICO*7=VALOR LOCACAO*8=TOTAL FATURADO*9=COMISSAO PECAS*10=%COMISSAO PECAS
+  //*11=COMISSAO EQUIPAMENTO*12=%COMISSAO EQUIPAMENTO*13=COMISSAO SERVICO*14=%COMISSAO SERVICO*15=COMISSAO LOCACAO*16=%COMISSAO LOCACAO*17=VALOR EXTRA*18=TOTAL COMISSAO*19=SEGMENTO
+
+  nValFat := 0
+  aEval( aFolha, {|x| nValFat += IIF(x[19]<>"S", x[3]+x[4]+x[5]+x[7], 0) }) //Vendedores que geram comissão para o Diego
+  
+  For i:= 1 to Len(aFolha)     
+     //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+     //³ Comissão sobre serviços   ³
+     //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+     If aFolha[i][19] == "S" //- Atendente serviço
+        aFolha[i][13] := (aFolha[i][4]+aFolha[i][6]) * (nCOMSER/100) //- Cálculo de comissão sobre [Total = Peças + Serviços]
+        aFolha[i][14] := nCOMSER //%Comissão serviços
+     Else                   
+        //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+        //³ Comissão sobre serviços para outros vendedores  ³
+        //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+        If aFolha[i][6] > 0 .And. aFolha[i][19]$"PEL"
+           aFolha[i][13] := aFolha[i][6] * (nCOMSER/100) //- Cálculo de comissão sobre serviços
+           aFolha[i][14] := nCOMSER
+        Endif   
+        //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+        //³ Comissão sobre Peças + Equipamentos ³
+        //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+        If aFolha[i][3]+aFolha[i][4]+aFolha[i][5] >= nMetFat //- Meta de 100k
+           aFolha[i][10]:= nMAXPC //- Percentual de comissão sobre vendas de peças >= 100K -> 2%         
+           aFolha[i][12]:= nMAXEQ //- Percentual de comissão sobre vendas de equipamentos >= 100k -> 1%    
+        Else                                                                                     
+           aFolha[i][10]:= nMINPC //- Percentual de comissão sobre vendas de peças < 100k -> 1%  
+           aFolha[i][12]:= nMINEQ //- Percentual de comissão sobre vendas de equipamentos < 100k -> 0,5%
+        Endif   
+        //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+        //³ Calculo da comissão sobre peças e equipamentos   
+        //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+        aFolha[i][9] := (aFolha[i][3]+aFolha[i][4]) * (aFolha[i][10]/100)  //- Cálculo de comissão sobre vendas de peças balcão         
+        aFolha[i][11]:= aFolha[i][5] * (aFolha[i][12]/100)                //- Cálculo de comissão sobre vendas de equipamentos       
+        //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+        //³ Comissão sobre locacao   ³
+        //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+        If aFolha[i][7] > 0 //- Locação  
+           aFolha[i][15]:= aFolha[i][7] * (nCOMLOC/100) //- Cálculo de comissão sobre vendas          
+           aFolha[i][16]:= nCOMLOC
+        Endif                           
+     Endif
+     //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+     //³ Verificando se o vendedor recebe comissão extra   ³
+     //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+     SA3->(DbSeek(xFilial("SA3")+aFolha[i][1]))     
+
+     If SA3->A3_XCOMEXT="1"  // Caso o vendedor receba comissão extra.
+        aFolha[i][17] += nValFat * (nCOMEXT/100)
+     Endif 
+     //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+     //³ Total da comissão ³
+     //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+     aFolha[i][18] += aFolha[i][9]+aFolha[i][11]+aFolha[i][13]+aFolha[i][15]+aFolha[i][17] //- Total de comissão  
+  Next  
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Inicio da impressão ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  SetRegua(Len(aFolha))
+                                       
+  For i:= 1 to Len(aFolha)
+     IncRegua()    
+     If aFolha[i][8] = 0 .And. aFolha[i][17] = 0 //- Se o total faturado for zero e não receber comissão extra não sai no relatorio
+        Loop
+     Endif   
+     //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+     //³ Verifica o cancelamento pelo usuario...                             ³
+     //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+     If lAbortPrint
+        @nLin,00 PSAY "*** CANCELADO PELO OPERADOR ***"
+        Exit
+     Endif
+     //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+     //³ Impressao do cabecalho do relatorio. . .                            ³
+     //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+     If nLin > 55  
+        Cabec(Titulo,Cabec1,Cabec2,NomeProg,Tamanho,nTipo)
+        nLin := 9 
+     Endif
+     
+     //VEND    NOME                           FAT. -----  FAT. ----   FAT. ----   FAT. -----  FAT. -----  TOTAL-----  COMISSAO    (%)   COMISSAO--   (%)    COMISSAO--   (%)    COMISSAO     (%)    VALOR----   COMISSAO--"
+     //                                       PC BALCAO-  PC SERVIC-  EQUIPAMEN.  SERVICOS--  LOCACAO---  FATURADO--  PECAS             EQUIPAMENT          SERVICO---          LOCACAO---          EXTRA----   A PAGAR---"
+     //999999  XXXXXXXXXXXXXXXXXXXXXXXXXXXX   999,999.99  999,999.99  999,999.99  999,999.99  999,999.99  999,999.99  999,999.99 999.99 999,999.99  999.99  999,999.99  999.99  999,999.99  999.99  999,999.99  999,999.99
+     //012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
+     //0         1         2         3         4         5         6         7         8         9        10        11        12        13        14        15        16        17        18        19        20
+     @nLin,000 PSay aFolha[i][1]
+     @nLin,008 PSay aFolha[i][2] Picture "@!" 
+     
+     @nLin,039 PSay aFolha[i][3] Picture "@E 999,999.99" // Peças Balcao
+     @nLin,051 PSay aFolha[i][4] Picture "@E 999,999.99" // Pecas Servico
+     @nLin,063 PSay aFolha[i][5] Picture "@E 999,999.99" // Equipamentos
+     @nLin,075 PSay aFolha[i][6] Picture "@E 999,999.99" // Serviços
+     @nLin,087 PSay aFolha[i][7] Picture "@E 999,999.99" // Locacao              
+     @nLin,099 PSay aFolha[i][8] Picture "@E 999,999.99" // Total Faturado
+     //-
+     @nLin,111 PSay aFolha[i][9]  Picture "@E 999,999.99" // Valor comissão peças
+     @nLin,122 PSay aFolha[i][10] Picture "@E 999.99"     // % Comissão peças
+     @nLin,129 PSay aFolha[i][11] Picture "@E 999,999.99" // Valor comissão equipamentos
+     @nLin,141 PSay aFolha[i][12] Picture "@E 999.99"     // % Comissão equipamentos
+     @nLin,149 PSay aFolha[i][13] Picture "@E 999,999.99" // Valor comissão serviços
+     @nLin,161 PSay aFolha[i][14] Picture "@E 999.99"     // % Comissão serviços
+     @nLin,169 PSay aFolha[i][15] Picture "@E 999,999.99" // Valor comissão locação
+     @nLin,181 PSay aFolha[i][16] Picture "@E 999.99"     // % Comissão locação
+     @nLin,189 PSay aFolha[i][17] Picture "@E 999,999.99" // Valores de comissão extra
+     @nLin,201 PSay aFolha[i][18] Picture "@E 999,999.99" // Valor comissão total     
+     nLin++
+    
+     nVgPCBalc += aFolha[i][3] 
+     nVgPCServ += aFolha[i][4] 
+     nVgEquipa += aFolha[i][5]
+     nVgServic += aFolha[i][6]
+     nVgLocaca += aFolha[i][7]
+     nVgTotal  += aFolha[i][8] 
+     //-
+     nCgPeca   += aFolha[i][9] 
+     nCgEquipa += aFolha[i][11]
+     nCgServic += aFolha[i][13]
+     nCgLocaca += aFolha[i][15] 
+     nCgExtra  += aFolha[i][17]
+     nCgPagar  += aFolha[i][18]
+  Next
+  If nRegis > 0
+     nlin++
+     @ nLin, 000  PSay __PrtThinLine()                    
+     nlin++                            
+     @nLin,000 PSay "TOTAL"
+     @nLin,039 PSay nVgPCBalc Picture "@E 999,999.99" // Peças balcao
+     @nLin,051 PSay nVgPCServ Picture "@E 999,999.99" // Peças serviços
+     @nLin,063 PSay nVgEquipa Picture "@E 999,999.99" // Equipamento
+     @nLin,075 PSay nVgServic Picture "@E 999,999.99" // Serviço
+     @nLin,087 PSay nVgLocaca Picture "@E 999,999.99" // Locacao
+     @nLin,099 PSay nVgTotal  Picture "@E 999,999.99" // Total
+     //-
+     @nLin,111 PSay nCgPeca   Picture "@E 999,999.99" // Valor comissão peças
+     @nLin,129 PSay nCgEquipa Picture "@E 999,999.99" // Valor comissão equipamentos
+     @nLin,149 PSay nCgServic Picture "@E 999,999.99" // Valor comissão serviços
+     @nLin,169 PSay nCgLocaca Picture "@E 999,999.99" // Valor comissão locação
+     @nLin,189 PSay nCgExtra  Picture "@E 999,999.99" // Valores extra 
+     @nLin,201 PSay nCgPagar  Picture "@E 999,999.99" // Valor a pagar 
+     nlin++
+     @ nLin, 000  PSay __PrtThinLine()                    
+     nlin++                            
+  Endif      
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Finaliza a execucao do relatorio...                                 ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  SET DEVICE TO SCREEN
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Se impressao em disco, chama o gerenciador de impressao...          ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  If aReturn[5]==1
+     dbCommitAll()
+     SET PRINTER TO
+     OurSpool(wnrel)
+  Endif
+  MS_FLUSH()
+Return
+
+//////////////////////////
+Static Function MontaQry()
+  Local cQuery := ""
+  
+  cQuery := " SELECT COUNT(*)SOMA "
+  cQuery += " FROM "+RetSQLName("SD2")+" SD2, "
+  cQuery +=          RetSQLName("SB1")+" SB1, "
+  cQuery +=          RetSQLName("SF2")+" SF2 "
+  cQuery += " WHERE SD2.D_E_L_E_T_ <> '*' "  
+  cQuery += " AND SB1.D_E_L_E_T_ <> '*' "
+  cQuery += " AND SF2.D_E_L_E_T_ <> '*' "
+  cQuery += " AND F2_DOC = D2_DOC " 
+  cQuery += " AND F2_SERIE = D2_SERIE "
+  cQuery += " AND D2_COD = B1_COD "
+  cQuery += " AND B1_X_COMIS IN(' ','S') "
+  cQuery += " AND F2_VEND1 <> '000016' "  
+  cQuery += " AND D2_PRCVEN <> 0    
+  cQuery += " AND B1_FILIAL BETWEEN '"+mv_par01+"' AND '"+mv_par02+"' "
+  cQuery += " AND D2_FILIAL BETWEEN '"+mv_par01+"' AND '"+mv_par02+"' "
+  cQuery += " AND F2_FILIAL BETWEEN '"+mv_par01+"' AND '"+mv_par02+"' "
+  cQuery += " AND D2_EMISSAO BETWEEN '"+mv_par03+"' AND '"+mv_par04+"' "  
+  cQuery += " AND F2_EMISSAO BETWEEN '"+mv_par03+"' AND '"+mv_par04+"' "  
+  cQuery += " AND ((D2_CF = '"+cCfPeca+"' "
+  cQuery += " OR (D2_CF = '"+cCfServ+"' AND D2_TES <> '"+cTesLoca+"') "
+  cQuery += " OR (D2_CF = '"+cCfServ+"' AND D2_TES = '"+cTesLoca+"')) "
+  cQuery += " OR D2_CF = '6102' OR D2_CF = '6929' OR D2_CF = '6108' OR D2_CF = '6933' OR D2_CF = '5404' OR D2_CF = '6404' OR D2_CF = '5405' OR D2_CF = '6405' OR D2_CF = '5119' OR D2_CF = '6119')"
+ 
+  dbUseArea( .T., "TOPCONN", TcGenQry(,,CHANGEQUERY(cQuery)), "XXX", .T., .F. )
+  nRegis := SOMA             
+  dbCloseArea()
+
+  cQuery := StrTran(cQuery,"COUNT(*)SOMA", "*")
+  cQuery += " ORDER BY F2_VEND1,D2_DOC,D2_SERIE, D2_CF "
+ 
+  dbUseArea( .T., "TOPCONN", TcGenQry(,,CHANGEQUERY(cQuery)), "XXX", .T., .F. )
+          		
+Return	 
+
+////////////////////////////////////////////////////////////
+Static Function QryVend(cNota, cSerie, cCliente, cLoja, cSeg)
+  Local cQuery    := ""
+  Local nPrcLista := 0.00
+  Local aVendaCom := {}
+                                                       
+  //- Criar campo B1_XTIPO C(1) onde 1=Peça/ 2=Equipamento/ 3=Outros
+  cQuery := " SELECT D2_DOC,D2_SERIE,D2_COD,D2_ITEM,D2_XPRCTAB,D2_QUANT,D2_TOTAL,D2_CF,D2_TES,B1_XTPPROD "
+  cQuery += " FROM "+RetSQLName("SD2")+" SD2, "
+  cQuery +=          RetSQLName("SB1")+" SB1 "
+  cQuery += " WHERE SD2.D_E_L_E_T_ <> '*' "
+  cQuery += " AND SB1.D_E_L_E_T_ <> '*' "  
+  cQuery += " AND B1_FILIAL BETWEEN '"+mv_par01+"' AND '"+mv_par02+"' "
+  cQuery += " AND D2_FILIAL BETWEEN '"+mv_par01+"' AND '"+mv_par02+"' "
+  cQuery += " AND D2_DOC = '"+cNota+"' "                 
+  cQuery += " AND D2_SERIE = '"+cSerie+"' "
+  cQuery += " AND D2_CLIENTE = '"+cCliente+"' "
+  cQuery += " AND D2_LOJA = '"+cLoja+"' "
+  cQuery += " AND D2_COD = B1_COD "
+ 
+  dbUseArea( .T., "TOPCONN", TcGenQry(,,CHANGEQUERY(cQuery)), "TMP", .T., .F. )
+                                            
+  // aVendaCom[1][1] //- Peças Balcão
+  // aVendaCom[1][2] //- Peças Serviço
+  // aVendaCom[1][3] //- Equipamentos
+  // aVendaCom[1][4] //- Serviços
+  // aVendaCom[1][5] //- Locação                
+  // aVendaCom[1][6] //- Total                
+
+  AADD(aVendaCom, {0, 0, 0, 0, 0, 0})
+
+  Do While !TMP->(Eof())
+     If !VerifSD1()
+	    TMP->(dbSkip())  	   
+	    Loop
+ 	 EndIf 
+     //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+     //³ Validar se é venda, serviço ou locação  ³
+     //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+     If cSeg = "S" //- Vendedor do Segmento de Serviços
+        If Alltrim(TMP->D2_COD) == '11' .Or. Alltrim(TMP->D2_COD) == '001364'
+           aVendaCom[1][4] += TMP->D2_TOTAL // Serviços
+        Else 
+           aVendaCom[1][2] += TMP->D2_TOTAL // Peças de serviços
+        Endif   
+     ElseIf cSeg = "L"  //- Vendedor do segmento de locação	 
+        aVendaCom[1][5] += TMP->D2_TOTAL
+     Else // vendedor do segmento de peças ou equipamentos    	 
+	    If TMP->B1_XTPPROD = "P" 
+	       aVendaCom[1][1] += TMP->D2_TOTAL //- Peças de balcão
+	    ElseIf TMP->B1_XTPPROD = "E"
+	       aVendaCom[1][3] += TMP->D2_TOTAL
+	    Else
+           If Alltrim(TMP->D2_COD) == '11' .Or. Alltrim(TMP->D2_COD) == '001364'
+              aVendaCom[1][4] += TMP->D2_TOTAL // Serviços
+	       Else
+	          aVendaCom[1][5] += TMP->D2_TOTAL // Locação (Colocado pra ver a diferença no relorio) 
+	       Endif   
+	    Endif
+	 Endif
+     aVendaCom[1][6] += TMP->D2_TOTAL
+     TMP->(dbSkip()) 
+  Enddo
+  TMP->(dbCloseArea())
+Return aVendaCom 
+
+///////////////////////
+Static Function VerifSD1
+        
+  Local cQuery := ""
+  Local lRet   := .F.
+
+  cQuery := " SELECT D1_TIPO, D1_NFORI, D1_SERIORI,D1_ITEMORI "
+  cQuery += " FROM "+RetSQLName("SD1")+" SD1 "   
+  cQuery += " WHERE SD1.D_E_L_E_T_ <> '*' "
+  cQuery += " AND D1_FILIAL BETWEEN '"+mv_par01+"' AND '"+mv_par02+"' "
+  cQuery += " AND D1_NFORI = '"+TMP->D2_DOC+"' " 
+  cQuery += " AND D1_SERIORI = '"+TMP->D2_SERIE+"' " 
+  cQuery += " AND D1_ITEMORI = '"+TMP->D2_ITEM+"' "
+  cQuery += " AND D1_TES <> '232' "
+  cQuery += " AND D1_XABCOMI <> 'N' "
+                  
+  dbUseArea( .T., "TOPCONN", TcGenQry(,,CHANGEQUERY(cQuery)), "YYY", .T., .F. )
+  lRet := YYY->(EOF())
+  YYY->(dbCloseArea())
+
+Return lRet                       
+      
+///////////////////////////
+Static Function DevForaPrz
+  Local cQry := ""
+  Local nPos := 0
+  cQry := "SELECT F2_VEND1,F2_DOC,F2_SERIE,F2_CLIENTE,F2_LOJA,F2_EMISSAO,D1_COD,D1_DTDIGIT,D2_TOTAL "
+  cQry += "FROM "+RetSQLName("SF2")+" SF2 "
+  cQry += "INNER JOIN "
+  cQry += "("
+  cQry += "  SELECT D1_DTDIGIT,D1_NFORI,D1_SERIORI,D1_COD,SUM(D2_TOTAL)D2_TOTAL "
+  cQry += "  FROM "+RetSQLName("SD1")+" SD1 "
+  cQry += "  INNER JOIN "+RetSQLName("SD2")+" SD2 ON D2_FILIAL = D1_FILIAL AND D2_DOC = D1_NFORI AND D2_SERIE = D1_SERIORI AND D2_ITEM = D1_ITEMORI "
+  cQry += "  WHERE SD1.D_E_L_E_T_ <> '*' AND SD2.D_E_L_E_T_ <> '*' "
+  cQry += "  AND SD1.D1_FILIAL = '"+xFilial("SD1")+"' "
+  cQry += "  AND SD1.D1_TES <> '232' "
+  cQry += "  AND SD1.D1_XABCOMI <> 'N' "
+  cQry += "  AND SD1.D1_DTDIGIT BETWEEN '"+mv_par03+"' AND '"+mv_par04+"' "
+  cQry += "  GROUP BY D1_DTDIGIT,D1_NFORI,D1_SERIORI,D1_COD "
+  cQry += ")SD1D ON SF2.F2_DOC = SD1D.D1_NFORI AND SF2.F2_SERIE = SD1D.D1_SERIORI "
+  cQry += "WHERE SF2.D_E_L_E_T_ <> '*' "    
+  cQry += "AND SF2.F2_FILIAL = '"+xFilial("SF2")+"' "
+  cQry += "AND SF2.F2_EMISSAO < '"+mv_par03+"' "
+  cQry += " AND (SF2.F2_VEND1 BETWEEN '      ' AND 'ZZZZZZ' " 
+  cQry += " OR SF2.F2_VEND2 BETWEEN '      ' AND 'ZZZZZZ') "   
+           
+  dbUseArea( .T., "TOPCONN", TcGenQry(,,CHANGEQUERY(cQry)), "DEV", .T., .F. )   
+  
+  TcSetField("DEV", "F2_EMISSAO", "D", 8, 0)  // Formata para tipo Data
+  TcSetField("DEV", "D1_DTDIGIT", "D", 8, 0)  // Formata para tipo Data
+
+  DEV->(DbGotop())     
+  
+  Do While !DEV->(Eof())                                                                   
+
+     SA3->(DbSeek(xFilial("SA3")+DEV->F2_VEND1)) //- Busca vendedor que fez a venda devolvida
+     SB1->(DbSeek(xFilial("SB1")+DEV->D1_COD)) //- Busca produto para identificar se peça ou equipamento
+     
+     //Matriz aDevoluc          
+     //[1] - Vendedor
+  	 //[2] - Peças balcão
+  	 //[3] - Peças serviços
+	 //[4] - Equipamentos
+	 //[5] - Serviços
+	 //[6] - Locação                
+	 //[7] - Total                
+     nPos := aScan(aDevoluc,{|x| x[1] = DEV->F2_VEND1 })
+
+     If nPos = 0                     
+        AAdd(aDevoluc,{DEV->F2_VEND1, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00 })
+        nPos:= Len(aDevoluc)
+     Endif                 
+  
+     //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+     //³ Processando as devoluções fora do prazo  ³
+     //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+     If SA3->A3_XSEGMEN = "S" //- Vendedor do Segmento de Serviços
+        If Alltrim(DEV->D1_COD) == '11' .Or. Alltrim(DEV->D1_COD) == '001364'
+           aDevoluc[nPos][5] += DEV->D2_TOTAL // Serviços
+        Else 
+           aDevoluc[nPos][3] += DEV->D2_TOTAL // Peças de serviços
+        Endif   
+     ElseIf SA3->A3_XSEGMEN = "L"  //- Vendedor do segmento de locação	 
+        aDevoluc[nPos][6] += DEV->D2_TOTAL
+     Else // vendedor do segmento de peças ou equipamentos    	 
+	    If SB1->B1_XTPPROD = "P" //- Tipo do produto
+	       aDevoluc[nPos][2] += DEV->D2_TOTAL //- Peças de balcão
+	    ElseIf SB1->B1_XTPPROD = "E"
+	       aDevoluc[nPos][4] += DEV->D2_TOTAL //- Equipamentos
+	    Else
+           If Alltrim(DEV->D1_COD) == '11' .Or. Alltrim(DEV->D1_COD) == '001364'
+              aDevoluc[nPos][5] += DEV->D2_TOTAL // Serviços
+	       Else
+	          aDevoluc[nPos][6] += DEV->D2_TOTAL // Locação (Colocado pra ver a diferença no relorio) 
+	       Endif   
+	    Endif
+	 Endif
+     aDevoluc[nPos][7] += DEV->D2_TOTAL
+     DEV->(DbSkip())
+  Enddo
+  DEV->(DbCloseArea())
+Return
+
+////////////////////////////////                              
+Static Function ValidPerg(cPerg)
+  Local _sAlias := Alias()
+  Local aRegs :={}
+
+  DbSelectArea("SX1")
+  DbSetOrder(1)
+
+  aAdd(aRegs,{cPerg,"01","Da Filial            ?","","","mv_ch1","C",02,0,0,"G","","mv_par01","","","", "","","","","","","","","","","","","","","","","","","","","","",""})
+  aAdd(aRegs,{cPerg,"02","Ate a Filial         ?","","","mv_ch2","C",02,0,0,"G","","mv_par02","","","", "","","","","","","","","","","","","","","","","","","","","","",""})
+  aAdd(aRegs,{cPerg,"03","Da data              ?","","","mv_ch3","D",08,0,0,"G","","mv_par03","","","", "","","","","","","","","","","","","","","","","","","","","","",""})
+  aAdd(aRegs,{cPerg,"04","Ate a data           ?","","","mv_ch4","D",08,0,0,"G","","mv_par04","","","", "","","","","","","","","","","","","","","","","","","","","","",""})
+
+  For i:=1 to Len(aRegs)
+     If !DbSeek(cPerg+aRegs[i,2])
+		RecLock("SX1",.T.)
+		For j:=1 to FCount()
+			If j <= Len(aRegs[i])
+			   FieldPut(j,aRegs[i,j])
+			Endif
+		Next
+		MsUnlock()
+	 Endif
+  Next
+Return

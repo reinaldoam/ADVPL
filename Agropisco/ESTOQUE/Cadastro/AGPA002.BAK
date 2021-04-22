@@ -1,0 +1,96 @@
+#include "Protheus.ch"
+#include "Rwmake.ch"
+#include "Font.ch"
+
+/*                           
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA    ³ Programador      ³                                        ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³29/07/2015 ³Reinaldo Magalhães ³ Preechimento do NCM dos produtos      ³±±
+±±³                               ³ mento.                                ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function AGPA002 
+
+  SetPrvt("aRotina,aCadastro,")
+  
+  Private cCadastro := "Revisão de NCM"
+
+  aCores := {{"B1_XNCMOK='1'" ,'ENABLE' },;	 // NCM revisado
+             {"B1_XNCMOK='2'" ,'DISABLE'}}	 // NCM não revisado
+  
+  aRotina := { { "Pesquisar", "AxPesqui"     , 0 , 1},;       
+               { "Liberar"  , "U_LiberarNCM" , 0 , 2},;       
+               { "Revisar"  , "U_RevisarNCM" , 0 , 3},;
+               { "Ver Nota" , "U_AGESTE01A"   , 0 , 4}}
+
+  mBrowse( 06, 01, 22, 75,"SB1",,,,,,aCores)
+                        
+Return
+              
+////////////////////////
+User Function LiberarNCM
+  Local lGrava:= .T.
+  Local cUsr := Upper(GetMv("MV_LIMCRED"))
+ 
+  If !(UPPER(Trim(SubStr(cUsuario,7,15))) $ cUsr)
+     MsgBox("Usuario não autorizado!")
+     Return
+  Endif   
+  lGrava:= Msgbox("Confirma dados?","Gravação","YESNO")
+  If lGrava
+     RecLock("SB1")
+     SB1->B1_XNCMOK := "2"  
+     MsUnLock()
+  Endif   
+Return
+
+/////////////////////////
+User Function RevisarNCM   
+  
+  Local oDlg,cNCM
+                           
+  If SB1->B1_XNCMOK <> "2"
+     MsgBox("NCM já revisado!!!")
+     Return
+  Endif   
+        
+  cNCM:= SB1->B1_POSIPI
+             
+  DEFINE Font oFnt3 Name "Ms Sans Serif" Bold
+  DEFINE Font oFnt4 Name "Tahoma" BOLD Size 013,030
+	
+  DEFINE MSDIALOG oDlgMain Title "Revisão NCM" From 96,5 to 380,650 Pixel
+	
+     @010, 5 to 50,330 Of oDlgMain Pixel
+
+     @015, 15 Say "NCM Antigo  :"  Size 55,8 Of oDlgMain Pixel Font oFnt3
+     @015, 65 Get cNCM when .f. Size 59,8 Pixel of oDlgMain
+                
+     @035, 15 Say "NCM Revisado:"  Size 55,8 Of oDlgMain Pixel Font oFnt3
+     @035, 65 Get cNCM Picture "@!" Size 129,8 Pixel of oDlgMain
+
+     bOk := {|| Processa({|| GravaNCM(cNCM),"Processando Dados"}), oDlgMain:End()}
+     
+     bCancel := {||oDlgMain:End()}
+	
+  ACTIVATE MSDIALOG oDlgMain ON INIT EnchoiceBar(oDlgMain,bOk,bCancel) CENTERED
+
+Return
+
+//////////////////////////////
+Static Function GravaNCM(cNCM)
+  Local lGrava:= .T.
+  lGrava:= Msgbox("Confirma dados?","Gravação","YESNO")
+  If lGrava
+     RecLock("SB1")
+     SB1->B1_POSIPI := cNCM 
+     SB1->B1_XNCMOK := "1"  
+     MsUnLock()
+  Endif   
+Return nil

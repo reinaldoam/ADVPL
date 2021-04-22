@@ -1,0 +1,2036 @@
+#INCLUDE "LOJA440.CH"
+#INCLUDE "PROTHEUS.CH"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³  DATA  ³ BOPS ³Program.³    ALTERACAO                                 ³±±
+±±ÃÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³14/11/02³xxxxxx³Edilson ³Foi implementada a verificacao dos campos     ³±±
+±±³        ³      ³        ³comissoes de clientes e de produtos no        ³±±
+±±³        ³      ³        ³instante do calculo efetuado pela emissao.    ³±±
+±±³17/09/03³xxxxxx³Fernando³Utilizacao de parametro de Filial De e Ate.   ³±±
+±±³21/06/06³101728³Marcio  ³- Correcao do bops: implementacao da QUERY    ³±±
+±±³        ³      ³        ³- Revisao do fonte: PMC                       ³±±
+±±³        ³      ³        ³- O programa foi reestruturado para melhorar  ³±±
+±±³		   ³	  ³		   ³  a performance do recálculo da comissão      ³±±
+±±³		   ³	  ³		   ³  off-line                                    ³±±
+±±³26/09/06³108457³Dolis   ³Disponibilizado o ponto de entrada Lj440FLT   ³±±
+±±³16/10/06³111265³Machima ³Tratar retorno numerico do ponto de entrada   ³±±
+±±³        ³      ³        ³Lj440Flt 									  ³±±
+±±³28/12/06³115548³Mauro S.³Feita validacao para recalculo da valor da    ³±±
+±±³        ³      ³        ³comissao em caso de devolucao de item.        ³±±
+±±ÀÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³ LOJA440    ³ Autor ³ Marcio Lopes          ³ Data ³ 21/06/06³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Calculo de comissoes off-line Sigaloja                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe   ³ LOJA440()                                                   ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ SIGALOJA                                                    ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Analista  ³ Data/Bops/Ver ³Manutencao Efetuada                          ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Marcio L. ³21/06/06³8.11  ³-Bops: 101728 - o fonte foi reestrutura para ³±±
+±±³          ³        ³      ³melhorar a performance da geracao da         ³±±
+±±³          ³        ³      ³geracao da comissao dos vendedores.          ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+USER Function ULOJ440
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Define Variaveis 													     ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ	
+Local nOpca 	:= 0			// Flag de confirmacao para OK ou CANCELA							
+Local aSays		:= {} 			// Array com as mensagens explicativas da rotina
+Local aButtons	:= {}			// Array com as perguntes (parametros) da rotina
+Local aArea		:= GetArea()	// Salva a area atual
+
+/*
+  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  ³Conversao de variaveis PRIVATE                                     ³
+  ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+  ³ANTES          ³                 DEPOIS                            ³
+  ³PRIVATE        ³                 LOCAL                             ³
+  ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+  ³nDecs          ³                 nDecs                             ³
+  ³lSEExc		  ³                 lSe1Exclusivo                     ³
+  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+*/
+
+
+Local nDecs 		:= MsDecimais(1)	// Informa qual o numero de casas decimais de acordo com o tipo de moeda informada: fonte original MATXFUNC.PRX
+Local cCadastro		:= STR0003 			//"C lculo de Comiss”es Off-Line"
+Local lSe1Exclusivo	:= .F.				// Flag que indica se SE1 esta EXCLUSIVO ou COMPARTILHADO (no SX2).
+
+If !Empty(xFilial("SE1"))
+	lSe1Exclusivo := .T.		
+Endif
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Parametros: 																 ³
+//³ mv_par01 = Data Inicial?		 										 ³
+//³ mv_par02 = Data Final?			  										 ³
+//³ mv_par03 = Do Vendedor? 		  										 ³
+//³ mv_par04 = At‚ o Vendedor? 	  											 ³
+//³ mv_par05 = Calcula Para? Emissao, Baixas ou Ambas?                       ³
+//³ mv_par06 = Considera Juros?	  Sim/NÆo									 ³
+//³ mv_par07 = Considera Descontos? Sim/NÆo									 ³
+//³ mv_par08 = Prioriade de calculo? Cliente/Produto/Vendedor/Venda			 ³
+//³ mv_par09 = Filtro por filial ? Sim/Nao                          		 ³
+//³ mv_par10 = Filial de:                                           		 ³
+//³ mv_par11 = Filial ate:                                          		 ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Pergunte("LOJ440",.F.)
+
+AADD(aSays, STR0004 ) //"  Este programa tem como objetivo executar os c lculos das comiss”es dos"
+AADD(aSays, STR0005 ) //"vendedores, conforme os parƒmetros definidos pelo usu rio.              "
+
+AADD(aButtons, { 5,.T.,{|| Pergunte("LOJ440",.T. ) } } )
+AADD(aButtons, { 1,.T.,{|o| nOpca := 1 , o:oWnd:End()}} )
+AADD(aButtons, { 2,.T.,{|o| o:oWnd:End() }} )
+
+
+FormBatch( cCadastro, aSays, aButtons )
+	
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Se o usuario confirmou a operacao³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If ( nOpcA == 1)
+	Processa({|lEnd| Lj440DelE3()},STR0007)  //"Excluindo Comiss”es n„o pagas"
+	
+	If mv_par05 == 1 .OR. mv_par05 == 3
+		Processa({|lEnd| Lj440ProcE(nDecs)},STR0008) //"Calculando Comiss”es pela Emiss„o"
+	Endif
+	
+	If mv_par05 == 2 .OR. mv_par05 == 3
+		
+		If MV_PAR08 == 2
+			// "A comissão por baixa nao esta adaptada para trabalhar com prioridade por produto. 
+			// Sera utilizado a comissao em prioridade por vendedor. Deseja mesmo assim utiliza-la?"
+			If MsgYesNo( STR0010 )
+				Processa({|lEnd| Lj440ProcB(nDecs, lSe1Exclusivo)}, STR0009) //"Calculando Comiss”es pela Baixa"
+			Endif
+		Else
+			Processa({|lEnd| Lj440ProcB(nDecs, lSe1Exclusivo)},STR0009) //"Calculando Comiss”es pela Baixa"
+		Endif
+		
+	Endif
+Endif
+
+RestArea(aArea)
+
+Return(.T.)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡„o    ³lj440DelE3   ³ Autor ³ Marcio Lopes          ³ Data ³21/06/06³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡„o ³ Zera as comissoes do periodo                                ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ Nenhum                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ FINA440                                                     ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function lj440DelE3()
+
+Local aArea      := GetArea() // Armazena a area atual
+Local cQuery     := ""        // Filtro que sera realizado na query
+Local cArqInd    := ""
+Local cChave     := ""
+
+#IFDEF TOP
+	Local lQuery     := .F.       //Indica se sera executada a query
+	Local nMax       := 0         //Variavel para utilizacao do controle na exclusao de registros
+	Local nMin       := 0         //Variavel para utilizacao do controle na exclusao de registros
+	Local cAliasSE3  := "SE3"     //Alias da query
+	Local nX         := 0         //Variavel For
+#ELSE
+	Local nIndex     := ""
+#ENDIF
+
+ProcRegua(SE3->(RecCount()))
+
+#IFDEF TOP
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Verificar se eh AS/400, pois a coluna R_E_C_N_O_ nao existe em AS/400³
+	//³dessa forma a condicao ira ser a do codebase                         ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	
+	If ( TcSrvType()<>"AS/400" )
+		
+		lQuery := .T.
+		
+		cAliasSE3 := "QRYSE3"
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Verifica qual eh o maior e o menor Recno que satisfaca a selecao³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		cQuery := "SELECT 	MIN(R_E_C_N_O_) MINRECNO,"
+		cQuery +=	 		"MAX(R_E_C_N_O_) MAXRECNO "
+		cQuery += "FROM " 			+ RetSqlName("SE3")						+ " SE3 "
+		cQuery += " WHERE "
+		cQuery += "E3_FILIAL = '" 	+ xFilial( "SE3" ) 						+ "' AND "
+		cQuery += "E3_EMISSAO >= '"	+ DtoS( mv_par01 ) 						+ "' AND "
+		cQuery += "E3_EMISSAO <= '"	+ DtoS( mv_par02 ) 						+ "' AND "
+		cQuery += "E3_DATA = '" 	+ Space( Len( DToS( SE3->E3_DATA ) ) ) + "' AND "
+		cQuery += "E3_ORIGEM = 'L' AND "
+		cQuery += "SE3.D_E_L_E_T_ = ' '"
+		
+		cQuery := ChangeQuery(cQuery)
+		
+		DbUseArea(.T., "TOPCONN", TcGenQry( , , cQuery), "FA440DELE3")
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Armazena o registro minimo e o maximo para executar a selecao correta³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		nMax := FA440DELE3->MAXRECNO
+		nMin := FA440DELE3->MINRECNO
+		
+		DbCloseArea()
+		DbSelectArea("SE3")
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Executa o delete fisico diretamente no banco, dessa forma a exclusao  ³
+		//³ficara mais rapida e aumentara a performance de qualquer processo que ³
+		//³execute o SE3 pois a tabela nao ficara saturada.                      ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		
+		cQuery := "DELETE FROM "        + RetSqlName("SE3") 					+ " "
+		cQuery += "WHERE E3_FILIAL = '" + xFilial("SE3")    					+ "' AND "
+		cQuery += "E3_EMISSAO >= '"     + DtoS( MV_PAR01 )  					+ "' AND "
+		cQuery += "E3_EMISSAO <= '"     + DtoS( MV_PAR02 )  					+ "' AND "
+		cQuery += "E3_DATA = '"         + Space( Len( DToS( SE3->E3_DATA ) ) )	+ "' AND "
+		cQuery += "E3_ORIGEM = 'L' AND "
+		cQuery += "D_E_L_E_T_ = ' '"
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Executa a string de execucao no banco para os proximos 1024 registro a fim de nao estourar o log do SGBD³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		
+		For nX := nMin To nMax STEP 1024
+			IncProc()
+			cChave := " AND R_E_C_N_O_>=" + Str(nX, 10, 0) + " AND R_E_C_N_O_<=" + Str(nX + 1023, 10, 0) + ""
+			TcSqlExec(cQuery+cChave)
+		Next nX
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³A tabela eh fechada para restaurar o buffer da aplicacao³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		DbSelectArea("SE3")
+		DbCloseArea()
+		ChkFile("SE3",.F.)
+	Else
+#ENDIF
+		DbSelectArea("SE3")
+		//DbSetOrder(1)
+		U_MsSetOrder("SE3","E3_FILIAL+E3_PREFIXO+E3_NUM+E3_PARCELA+E3_SEQ+E3_VEND")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Caso for Codebase ou for AS/400³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		cQuery := 'E3_FILIAL=="'		+ xFilial("SE3") 	+ '".AND. '
+		cQuery += 'Dtos(E3_EMISSAO)>="'	+ Dtos(mv_par01) 	+ '".AND. '
+		cQuery += 'Dtos(E3_EMISSAO)<="'	+ Dtos(mv_par02) 	+ '".AND. '
+		cQuery += 'Dtos(E3_DATA)=="'	+ Dtos(cTod(""))	+ '".AND. '
+		cQuery += 'E3_ORIGEM == "L"'
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Filtra com Indregua os registros que atenderem a solicitacao³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		cArqInd  := CriaTrab(,.F.)
+		cChave   := IndexKey()
+		IndRegua("SE3",cArqInd,cChave,,cQuery,STR0006)  //"Selecionando Registros..."
+		nIndex := RetIndex("SE3")
+		DbSelectArea("SE3")
+		#IFNDEF TOP
+			DbSetIndex(cArqInd+OrDbagExt())
+		#ENDIF
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Prepara a delecao dos registros³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		DbSelectArea("SE3")
+		DbSetOrder(nIndex+1)
+		DbSeek(xFilial("SE3"),.T.)
+		
+		While ( ! Eof() .AND. xFilial("SE3") == SE3->E3_FILIAL )
+			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³Executa a delecao dos registros³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			RecLock("SE3",.F.)
+			DbDelete()
+			MsUnlock()
+			DbSelectArea("SE3")
+			DbSkip()
+			IncProc()
+		End
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Restaura os indices padroes da tabela SE3³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		DbSelectArea("SE3")
+		RetIndex("SE3")
+		DbClearFilter()
+		FErase(cArqInd + OrDbagExt())
+#IFDEF TOP
+	Endif
+#ENDIF
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Restaura a area de trabalho³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+RestArea( aArea )
+
+Return(.T.)
+	
+	
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡„o    ³lj440ProcE   ³ Autor ³ Marcio Lopes          ³ Data ³21/06/06³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡„o ³ Processa o c lculo das comissoes pela Emissao               ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ Nenhum                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ FINA440                                                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÂÄÁÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³  DATA  ³ BOPS ³Program.³ ALTERACAO                                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³14/06/05³081610³Hanna C.³Grava o vendedor do cabecalho da venda no SE1 e³±±
+±±³        ³      ³        ³SF2.Alteracao da gravacao do vendedor no SL2   ³±±
+±±³        ³      ³        ³sempre gravava no SL2 o vendedor do cabecalho  ³±±
+±±³22/05/06³097520³Cleber  ³Tratamento nos MsSeek() ref. ao campo Filial   ³±±
+±±³        ³      ³        ³verificando-se o modo do arquivo (Compart. ou  ³±±
+±±³        ³      ³        ³exclusivo) e se considera filtro por filial.   ³±±
+±±³28/12/06³115548³Mauro S.³Feita validacao para recalculo da valor da     ³±±
+±±³        ³      ³        ³comissao em caso de devolucao de item.         ³±±   
+±±ÀÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function lj440ProcE(nDecs)
+
+Local lSE3found := .F.														// Indica se encontrou reg. no SE3
+Local nImp		:= 0 														// Variav. auxiliar em For...Next
+Local aImp																	// Array de impostos
+Local cImp		:= Iif(cPaisLoc <> "BRA", CRIAVAR("A3_COMIMP", .F.), "")	// imposto
+Local nX        := 0														// Variav. auxiliar em For...Next
+Local nImposto	:= 0														// Valor do imposto
+Local nComissao := 0														// Comissao
+Local cPrefixo 	:= ""														// Prefixo a ser gravado no SE3
+Local cVendedor := Space(Len(SL1->L1_VEND))								// Vendedor
+Local aVendedor := {}														// Array de vendedores
+Local nPerc 	:= 0														// Percentual
+Local lComisCC  := ( Upper(SuperGetMV( "MV_COMISCC" )) == "S" )			// Valida se considera valor inteiro ou valor real
+Local cFilDe    := ""														// Filial De (filtro)
+Local cFilAte   := ""														// Filial Ate (filtro)
+Local cGerente																// Cod. gerente
+Local cSupervisor															// Cod. supervisor
+Local lAchou    := .F.														// Indica se achou reg. no SD2
+Local nPercTemp	:= 0														// Variav. auxiliar para calculo
+Local nPos		:= 0														// Posicao encontrada no array
+Local aVendTemp	:= {}														// Array de comissoes por vendedor
+Local lSE1Excl  := .F.														// Indica se o arq. SE1 esta em modo exclusivo
+Local lSA3Excl  := .F.														// Indica se o arq. SA3 esta em modo exclusivo
+Local lSA1Excl  := .F.														// Indica se o arq. SA1 esta em modo exclusivo
+Local lSB1Excl  := .F.														// Indica se o arq. SB1 esta em modo exclusivo
+Local lSF2Excl  := .F.														// Indica se o arq. SF2 esta em modo exclusivo
+Local lSE3Excl  := .F.														// Indica se o arq. SE3 esta em modo exclusivo
+Local lLj440FLT := FindFunction("U_LJ440FLT")								// Identifica se existe o ponto de entrada LJ440FLT
+Local cFilSE1	:= ""														// Filial do SE1
+Local cFilSA3	:= ""														// Filial do SA3
+Local cFilSA1	:= ""														// Filial do SA1
+Local cFilSB1	:= ""														// Filial do SB1
+Local cFilSF2	:= ""														// Filial do SF2
+Local cFilSE3	:= ""														// Filial do SE3
+Local cQuery    := ""														// Utilizada para montagegem da query
+Local lTop      := .F.				    									// Indica se utiliza BD
+Local cAliasSL1	:= "TRB"													// Idenfica qual Alias deve utilizar
+Local cCond		:= ""      													// Variavel utilizada para compor o While do arquivo SL1
+Local aStrutSL1 := {}														// Array utilizada para guardar a estrutura de alguns campos do SL1
+Local nPosAr	:= 0														// Posicao no array do vendedor	
+Local aArea		:= ""														// Guarda a area utilizaad antes das apuracoes de devolucao	
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Verifica no SX2 o modo dos arquivos envolvidos na operacao ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+SX2->(DbSetOrder(1))
+If SX2->(DbSeek("SE1"))
+	lSE1Excl  := IIf(SX2->X2_MODO == "E", .T., .F.)
+Endif
+If SX2->(DbSeek("SA3"))
+	lSA3Excl  := IIf(SX2->X2_MODO == "E", .T., .F.)
+Endif
+If SX2->(DbSeek("SA1"))
+	lSA1Excl  := IIf(SX2->X2_MODO == "E", .T., .F.)
+Endif
+If SX2->(DbSeek("SB1"))
+	lSB1Excl  := IIf(SX2->X2_MODO == "E", .T., .F.)
+Endif
+If SX2->(DbSeek("SF2"))
+	lSF2Excl  := IIf(SX2->X2_MODO == "E", .T., .F.)
+Endif
+If SX2->(DbSeek("SE3"))
+	lSE3Excl  := IIf(SX2->X2_MODO == "E", .T., .F.)
+Endif
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Filtro por filial (caso o usuario selecione)                             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If MV_PAR09 == 1
+	cFilDe  := MV_PAR10
+	cFilAte := MV_PAR11
+Else
+	cFilDe := cFilAte := SL1->( xFilial( "SL1" ) )
+Endif
+
+#IFDEF TOP
+	If TcSrvType()<>"AS/400"	
+		lTop := .T.
+		AADD(aStrutSL1, {"L1_MOEDA"		, "", "", ""} )
+		AADD(aStrutSL1, {"L1_EMISSAO"	, "", "", ""} )
+		AADD(aStrutSL1, {"L1_JUROS"		, "", "", ""} )
+		AADD(aStrutSL1, {"L1_FRETE"		, "", "", ""} )
+		AADD(aStrutSL1, {"L1_SEGURO"	, "", "", ""} )
+		AADD(aStrutSL1, {"L1_DESPESA"	, "", "", ""} )
+		AADD(aStrutSL1, {"L1_ABTOPCC"	, "", "", ""} )
+		AADD(aStrutSL1, {"L1_CARTAO"	, "", "", ""} )
+		LJ440Stru(@aStrutSL1, "SL1")
+		LJ440ExeQryL1(@cQuery, aStrutSL1, cAliasSL1, Nil, ;
+						Nil, Nil, 1, cFilDe, ;
+						cFilAte)
+	EndIf
+#ENDIF
+
+If lTop
+	DbSelectArea(cAliasSL1)
+	cCond := "!Eof()"  											// Se o banco estiver em TOP a selecao sera somente ate EOF porque ja existe uma QUERY antes
+Else
+	cCond := "!Eof() .AND. SL1->L1_FILIAL <= '" + cFilAte + "'"	// Se o banco NAO estiver em TOP a selecao sera EOF + L1_FILIAL porque NAO existe uma QUERY antes
+	cAliasSL1 := "SL1"
+	DbSelectArea(cAliasSL1)
+	DbSetOrder(4)
+	DbSeek(cFilDe + DtoS(mv_par01 ) , .T. )
+Endif
+
+While &cCond
+	If !lTop
+		If (cAliasSL1)->L1_EMISSAO < MV_PAR01 .OR. (cAliasSL1)->L1_EMISSAO > MV_PAR02
+			DbSkip()
+			Loop
+		Endif
+	Endif
+	
+	aArea := GetArea()	 
+	
+	If ExistBlock("LJ440SE1")
+		If !ExecBlock("LJ440SE1",.F.,.F.)
+			DbSelectArea(cAliasSL1)
+			DbSkip()
+			Loop
+		Endif
+	Else
+		DbSelectArea("SE1")
+		//DbSetOrder(1)
+		U_MsSetOrder("SE1","E1_FILIAL+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    		
+		If MV_PAR09 == 1 .AND. lSE1Excl
+			cFilSE1 := (cAliasSL1)->L1_FILIAL
+		Else
+			cFilSE1 := xFilial("SE1")
+		Endif
+		DbSeek( cFilSE1 + (cAliasSL1)->L1_SERIE + (cAliasSL1)->L1_DOC )
+		
+		//Posiciono em titulo que nao seja de abatimento
+		
+		While 	(!Eof()) 								.AND. ;
+				cFilSE1  				== E1_FILIAL 	.AND. ;
+				(cAliasSL1)->L1_SERIE  	== E1_PREFIXO	.AND. ;
+				(cAliasSL1)->L1_DOC 	== E1_NUM
+			If !( SE1->E1_TIPO $ MVABATIM )
+				Exit
+			Endif            
+			DbSkip()
+		End
+	Endif
+	DbSelectArea("SL2")
+	//DbSetOrder(1)
+	U_MsSetOrder("SL2","L2_FILIAL+L2_NUM+L2_ITEM+L2_PRODUTO")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    		
+	DbSeek((cAliasSL1)->L1_FILIAL + (cAliasSL1)->L1_NUM)
+	
+	//Ponto de entrada para validacao dos registros de comissao
+	If ExistBlock( "LJ440VLD" ) .AND. !ExecBlock( "LJ440VLD", .F., .F., 1 )
+		DbSelectArea(cAliasSL1)
+		DbSkip()
+		Loop
+	Endif
+	
+	nComissao := 0
+	aVendedor := {}
+	aVendTemp := {}
+	
+	While 	( !Eof() ) 									.AND. ;
+		 	SL2->L2_NUM		== (cAliasSL1)->L1_NUM 		.AND. ;
+		 	SL2->L2_FILIAL 	== (cAliasSL1)->L1_FILIAL
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Se nao tiver vendedor simplesmente ignora o registro                     ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If Empty(SL2->L2_DOC)
+			DbSelectArea("SL2")
+			DbSkip()
+			Loop
+		Endif
+		
+		cVendedor := (cAliasSL1)->L1_VEND
+		
+		If !(Empty(SL2->L2_VEND)) .AND. mv_par08 <> 4
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Verifica o filtro de vendedores                                          ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			cVendedor := SL2->L2_VEND
+		Endif
+		
+		If cVendedor < mv_par03 .OR. cVendedor > mv_par04
+			DbSelectArea("SL2")
+			DbSkip()
+			Loop
+		Endif
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Verifica se deve haver comissao para a venda ou vendedor                 ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		DbSelectArea("SA3")
+		//DbSetOrder(1)
+		U_MsSetOrder("SA3","A3_FILIAL+A3_COD")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    				
+		If MV_PAR09 == 1 .AND. lSA3Excl
+			cFilSA3 := (cAliasSL1)->L1_FILIAL
+		Else
+			cFilSA3 := xFilial("SA3")
+		Endif
+		
+		If !(DbSeek( cFilSA3 + cVendedor ) )
+			DbSelectArea("SL2")
+			DbSkip()
+			Loop
+		Endif
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Garante que vai ter percentual de comissao								 ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		nPerc := SA3->A3_COMIS
+		
+		If SA3->A3_ALEMISS == 0
+			DbSelectArea("SL2")
+			DbSkip()
+			Loop
+		Endif
+		
+		If Mv_Par08 == 1					// Cliente
+			
+			//SA1->(DbSetOrder(1))
+			U_MsSetOrder("SA1","A1_FILIAL+A1_COD+A1_LOJA")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    				
+			If MV_PAR09 == 1 .AND. lSA1Excl
+				cFilSA1 := (cAliasSL1)->L1_FILIAL
+			Else
+				cFilSA1 := xFilial("SA1")
+			Endif
+			SA1->( DbSeek( cFilSA1 + (cAliasSL1)->L1_CLIENTE ) )
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Verifica se as comissoes do cliente sao zeradas                          ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If SA1->A1_COMIS > 0
+				nPerc := SA1->A1_COMIS
+			Endif
+		ElseIf Mv_Par08 == 2				// Produto
+			
+			//SB1->(DbSetOrder(1))
+			U_MsSetOrder("SB1","B1_FILIAL+B1_COD")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    				
+			If MV_PAR09 == 1 .AND. lSB1Excl
+				cFilSB1 := (cAliasSL1)->L1_FILIAL
+			Else
+				cFilSB1 := xFilial("SB1")
+			Endif
+			SB1->( DbSeek( cFilSB1 + SL2->L2_PRODUTO ) )
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Verifica se as comissoes do produto sao zeradas                          ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If SB1->B1_COMIS > 0
+				nPerc := SB1->B1_COMIS
+			Endif
+			
+		ElseIf Mv_Par08 == 3                // Vendedor
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Verifica se as comissoes sao zeradas                                     ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If SA3->A3_COMIS == 0
+				DbSelectArea("SL2")
+				DbSkip()
+				Loop
+			Endif
+			nPerc := SA3->A3_COMIS
+			
+		ElseIf Mv_Par08 == 4                //Venda
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Verifica se as comissoes sao zeradas                                     ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			DbSelectArea( "SF2" )
+			//DbSetOrder( 1 )
+			U_MsSetOrder("SF2","F2_FILIAL+F2_DOC+F2_SERIE+F2_CLIENTE+F2_LOJA+F2_FORMUL")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    				
+			If MV_PAR09 == 1 .AND. lSF2Excl
+				cFilSF2 := (cAliasSL1)->L1_FILIAL
+			Else
+				cFilSF2 := xFilial("SF2")
+			Endif
+			If !DbSeek( cFilSF2 + SL2->L2_DOC + SL2->L2_SERIE + (cAliasSL1)->L1_CLIENTE + (cAliasSL1)->L1_LOJA )
+				DbSelectArea("SL2")
+				DbSkip()
+				Loop
+			Endif
+			
+			DbSelectArea( "SD2" )
+			//DbSetOrder( 3 )
+			U_MsSetOrder("SD2","D2_FILIAL+D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA+D2_COD+D2_ITEM")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    				
+			
+			lAchou := .F.
+			
+			If DbSeek( cFilSF2 + SL2->L2_DOC + SL2->L2_SERIE + (cAliasSL1)->L1_CLIENTE + (cAliasSL1)->L1_LOJA + SL2->L2_PRODUTO )
+				
+				While 	( !Eof() )									.AND. ;
+						D2_FILIAL 	== cFilSF2 						.AND. ;
+						D2_DOC 		== SL2->L2_DOC 					.AND. ;
+						D2_SERIE 	== SL2->L2_SERIE 				.AND. ;
+						D2_CLIENTE 	== (cAliasSL1)->L1_CLIENTE 		.AND. ;
+						D2_LOJA 	== (cAliasSL1)->L1_LOJA 		.AND. ;
+						D2_COD 		== SL2->L2_PRODUTO 
+				
+				
+					If D2_ITEMPV == SL2->L2_ITEM
+						lAchou := .T.
+						Exit
+					Endif
+					SD2->(DbSkip())
+				End
+			Endif
+			
+			If ! lAchou
+				DbSelectArea("SL2")
+				DbSkip()
+				Loop
+			Endif
+			
+			If cVendedor == SF2->F2_VEND1 .AND. SD2->D2_COMIS1 > 0
+				nPerc := SD2->D2_COMIS1
+
+			ElseIf cVendedor == SF2->F2_VEND2 .AND. SD2->D2_COMIS2 > 0
+				nPerc := SD2->D2_COMIS2
+
+			ElseIf cVendedor == SF2->F2_VEND3 .AND. SD2->D2_COMIS3 > 0
+				nPerc := SD2->D2_COMIS3
+
+			ElseIf cVendedor == SF2->F2_VEND4 .AND. SD2->D2_COMIS4 > 0
+				nPerc := SD2->D2_COMIS4
+
+			ElseIf cVendedor == SF2->F2_VEND5 .AND. SD2->D2_COMIS5 > 0
+				nPerc := SD2->D2_COMIS5
+
+			Endif
+
+		Endif
+		
+		nPerc := nPerc * SA3->A3_ALEMISS / 100
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Se percentual for zero ignora		                                     ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If nPerc == 0
+			DbSelectArea("SL2")
+			DbSkip()
+			Loop
+		Endif
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Calcula a base da comissao do vendedor para a emissao               ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If SL2->L2_VENDIDO == "S"
+			If cPaisLoc <> "BRA"
+				//SA3->(DbSetOrder(1))
+				U_MsSetOrder("SA3","A3_FILIAL+A3_COD")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    				
+				SA3->(DbSeek( cFilSA3 + cVendedor ))
+				aImp := TesImpInf(SL2->L2_TES)
+				cImp := SA3->A3_COMIMP
+				nImp := 0
+				For nX :=1 to Len(aImp)
+					nImposto := Round(xMoeda(SL2->(FieldGet(FieldPos("L2"+Substr(aImp[nX][2],3,8)))),(cAliasSL1)->L1_MOEDA, 1, ;
+										(cAliasSL1)->L1_EMISSAO,nDecs+1,(cAliasSL1)->L1_TXMOEDA),nDecs)
+					If (cImp + aImp[nX][3] == "S1")
+						nImp += nImposto
+					ElseIf (cImp + aImp[nX][3] == "N2")
+						nImp -= nImposto
+					Endif
+				Next nX
+				nComissao := Round(xMoeda(SL2->L2_VLRITEM,(cAliasSL1)->L1_MOEDA, 1,(cAliasSL1)->L1_EMISSAO,nDecs+1,(cAliasSL1)->L1_TXMOEDA),nDecs) + nImp
+			Else
+				nComissao := SL2->L2_VLRITEM     
+				
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Desconsidera na base da comissao o Acrescimo Financeiro			    ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If SA3->A3_ACREFIN == "N"
+					nComissao := nComissao / (((cAliasSL1)->L1_JUROS / 100) + 1)
+				Endif
+				If SA3->A3_FRETE == "S"
+					nComissao += (cAliasSL1)->L1_FRETE + (cAliasSL1)->L1_SEGURO + (cAliasSL1)->L1_DESPESA
+				Endif
+			Endif
+			If mv_par08 == 2		// Se for processamento por Produto
+				nPosVend := Ascan(aVendedor, {|x| x[1]+x[4]+x[5]+x[6] == cVendedor+SB1->B1_COD+SL2->L2_DOC+SL2->L2_SERIE})
+			Else
+				nPosVend := Ascan(aVendedor, {|x| x[1]+x[5]+x[6] == cVendedor+SL2->L2_DOC+SL2->L2_SERIE})
+			Endif
+			
+			If nPosVend == 0
+				If mv_par08 == 2	// Se for processamento por Produto
+					Aadd(aVendedor, {cVendedor, nComissao, nPerc, SB1->B1_COD, SL2->L2_DOC, SL2->L2_SERIE})
+				Else
+					Aadd(aVendedor, {cVendedor, nComissao, nPerc, '', SL2->L2_DOC, SL2->L2_SERIE})
+				Endif
+			Else
+				aVendedor[nPosVend][2] += nComissao
+			Endif
+		Endif
+		DbSelectArea("SL2")
+		DbSkip()
+	End
+	
+// Acha o total devolvido
+#IFDEF TOP       
+	cQuery := "SELECT SD1.D1_NFORI, SD1.D1_SERIORI, SD1.D1_TOTAL, SL1.L1_VEND "
+	cQuery += "FROM " + RetSqlName( "SD1" ) + " SD1 "  
+	cQuery += "JOIN " + RetSqlName( "SF1" ) + " SF1 "
+	cQuery += "ON SF1.F1_DOC = SD1.D1_DOC AND "    
+	cQuery += "SF1.F1_TIPO = 'D' AND "
+	
+	If !Empty( xFilial( "SD1" ) ) .AND. !Empty( xFilial( "SF1" ) ) 
+		cQuery += "SF1.F1_FILIAL  = SD1.D1_FILIAL AND " 
+	Else
+		cQuery += "SF1.F1_FILIAL  = '" + xFilial( "SL1" ) + "' AND " 
+	Endif	
+	
+	cQuery += "   SF1.F1_EMISSAO >= '" + DtoS( mv_par01 ) + "' AND "
+	cQuery += "   SF1.F1_EMISSAO <= '" + DtoS( mv_par02 ) + "' AND "	    
+	cQuery += "   SF1.D_E_L_E_T_ = ' ' "	  
+	cQuery += "JOIN " + RetSqlName( "SL1" ) + " SL1 "
+	cQuery += "ON SD1.D1_NFORI = SL1.L1_DOC AND SD1.D1_SERIORI = SL1.L1_SERIE " 
+	 
+	If !Empty( xFilial( "SD1" ) ) .AND. !Empty( xFilial( "SL1" ) ) 
+		cQuery += "AND SD1.D1_FILIAL  = SF1.F1_FILIAL " 
+	Else	  
+		cQuery += "SD1.D1_FILIAL  = '" + xFilial( "SL1" ) + "'" 
+	Endif	              
+	
+	cQuery += "WHERE SD1.D1_ORIGLAN = 'LO' AND "
+	cQuery += "      SD1.D_E_L_E_T_ = ' '"
+	cQuery := ChangeQuery(cQuery)	
+	
+	DbUseArea(.T., "TOPCONN", TcGenQry( , , cQuery), "TMP")   
+#ELSE     
+	                   
+	DbSelectArea( "SD1" )
+	//DbSetOrder( 3 ) 
+	U_MsSetOrder("SD1","D1_FILIAL+DTOS(D1_EMISSAO)+D1_DOC+D1_SERIE+D1_FORNECE+D1_LOJA")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    				
+	DbSeek( xFilial( "SD1" ) )
+	While !Eof()
+		If ( SD1->D1_EMISSAO >= mv_par01 ) .AND. ( SD1->D1_EMISSAO <= mv_par02 ) .AND. ( SD1->D1_ORIGLAN == "LO" )
+			DbSelectArea( "SF1" )
+			//DbSetOrder( 1 )
+			U_MsSetOrder("SF1","F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA+F1_TIPO")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    							
+			If DbSeek( xFilial( "SD1" ) + SD1->D1_DOC + SD1->D1_SERIE )
+				If SF1->F1_TIPO = "D"
+					DbSelectArea( "SL1" )
+					//DbSetOrder( 2 )
+					U_MsSetOrder("SL1","L1_FILIAL+L1_SERIE+L1_DOC+L1_PDV")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    							
+					If DbSeek( xFilial( "SD1" ) + SD1->D1_SERIORI + SD1->D1_NFORI )    
+						//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+						//³Posiciono D1, L1 e F1 para recalcular a valor dos titulos   ³
+						//³validando vendedor, serie e doc.                            ³
+						//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+						nPosAr := aScan(aVendedor, {|x| x[1] ==  SL1->L1_VEND })
+						If nPosAr <> 0  
+							If aVendedor[nPosAr][5] == SD1->D1_NFORI .AND. aVendedor[nPosAr][6] == SD1->D1_SERIORI	
+								//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+								//³Subtraio a devolução do valor do item.³
+								//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+						   		aVendedor[nPosAr][2] -= SD1->D1_TOTAL                                  
+						   	Endif	
+						Endif   
+					EndIf
+				Endif	
+			Endif  
+			DbSelectArea( "SD1" )
+			DbSkip()    
+		Else
+			DbSkip()
+		Endif		
+	End                               
+	RestArea( aArea )
+#ENDIF	
+	
+	For nX := 1 to Len(aVendedor)
+		aVendedor[nX][2] -= IIf( (cAliasSL1)->L1_CARTAO > 0 .AND. lComisCC,Lj440AdmFin((cAliasSL1)->L1_NUM), 0 )
+	Next nX
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Recebe o TMP com o resultado da query e verifico o          ³
+//³vendedor, serie e DOC antes de descontar do valor do titulo.³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+#IFDEF TOP	  
+	DbGoTo( 1 )
+	While !Eof()
+		nPosAr := aScan(aVendedor, {|x| x[1] == TMP->L1_VEND })
+		If nPosAr <> 0  
+		   	If aVendedor[nPosAr][5] == TMP->D1_NFORI .AND. aVendedor[nPosAr][6] == TMP->D1_SERIORI
+		   		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³Subtraio a devolução do valor do item.³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				aVendedor[nPosAr][2] -= TMP->D1_TOTAL                                            
+			Endif	
+	  	Endif   
+		DbSkip()
+	End	 
+	DBCloseArea()   
+#ENDIF
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Desconsidera da base da comissao o credito (Troca) da venda apenas  ³
+	//³ quando o calculo for Por Venda.                                     ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If (cAliasSL1)->L1_CREDITO > 0 .AND. mv_par08 == 4 .AND. Len(aVendedor) > 0
+		
+		nPosVend := Ascan(aVendedor, {|x| x[1] == cVendedor})
+		aVendedor[nPosVend][2] -= (cAliasSL1)->L1_CREDITO
+		
+	Endif
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Desconsidera na base da comissao o valor de abatimento do PIS/COFINS/CSLL ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If (cAliasSL1)->(FieldPos("L1_ABTOPCC")) > 0 .AND. Len(aVendedor) > 0
+		If ( nPosVend := aScan(aVendedor, { |x| x[01] == cVendedor }) ) > 0
+			aVendedor[nPosVend,02] -= (cAliasSL1)->L1_ABTOPCC
+		Endif
+	Endif
+	
+	If MV_PAR09 == 1 .AND. lSA1Excl
+		cFilSA1 := (cAliasSL1)->L1_FILIAL
+	Else
+		cFilSA1 := xFilial("SA1")
+	Endif
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Desconsidera na base da comissao o valor de abatimento do ISS ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If ( Posicione("SA1",1,cFilSA1+(cAliasSL1)->L1_CLIENTE+(cAliasSL1)->L1_LOJA,"SA1->A1_RECISS") == "1" .AND. SuperGetMV("MV_DESCISS",,.F.) )
+		If Len(aVendedor) > 0 .AND. ( nPosVend := aScan(aVendedor, { |x| x[01] == cVendedor }) ) > 0
+			aVendedor[nPosVend,02] -= (cAliasSL1)->L1_VALISS
+		Endif
+	Endif
+
+		
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Identifica se existe o ponto de entrada lLj440FLT³ 
+	//³caso o ponto de entrada retorne falso ira pular o³ 	
+	//³Calculo da comissao do vendedor.                 ³ 
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If lLj440FLT
+		xRet := U_Lj440FLT(cAliasSL1)
+		If ValType(xRet) == "L"
+			If !xRet 
+				DbSelectArea(cAliasSL1)
+				dbSkip()
+				Loop
+			EndIf	
+		ElseIf ValType(xRet) == "N"	
+		   If Len(aVendedor) > 0 .AND. (nPosVend := aScan(aVendedor,{|x| x[01]==cVendedor})) > 0 .AND. xRet > 0   
+		      aVendedor[nPosVend,02] -= xRet      
+		   EndIf
+		EndIf
+	EndIf
+		
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Faz o calculo da porcentagem, do valor e da base da comissao  ³
+	//³ com base no total de todos os produtos.	 					  ³
+	//³ Isso se deve ao fato de que so era calculado a base, valor    ³
+	//³ e porcentagem de comissao do primeiro produto do titulo mesmo ³
+	//³ que existisse outros produtos.								  ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	For nX := 1 To Len( aVendedor )
+		nPos := aScan( aVendTemp, { |x| x[1] + x[5] + x[6] == aVendedor[nX][1] + aVendedor[nX][5] + aVendedor[nX][6] } )
+		
+		If nPos > 0
+			aVendTemp[nPos][2] += aVendedor[nX][2]
+			aVendTemp[nPos][7] += ( aVendedor[nX][2] * aVendedor[nX][3] ) / 100
+			
+			If nPercTemp <> aVendedor[nX][3]
+				aVendTemp[nPos][3] := ( aVendTemp[nPos][7] / aVendTemp[nPos][2] ) * 100
+			Endif
+		Else
+			nPercTemp := aVendedor[nX][3]
+			
+			aAdd( aVendTemp, { 	aVendedor[nX][1]	, ; 		// Vendedor
+								aVendedor[nX][2]	, ; 		// Base da Comissao
+								aVendedor[nX][3]	, ; 		// Porcentagem de Comissao
+								aVendedor[nX][4]	, ; 		// Codigo do Produto
+								aVendedor[nX][5]	, ; 		// Numero
+								aVendedor[nX][6]	, ; 		// Serie
+								(aVendedor[nX][2] 	* ;
+								aVendedor[nX][3] ) / 100 } )	// Valor da Comissao
+		Endif
+	Next nX
+	
+	DbSelectArea( "SA3" )
+	//DbSetOrder( 1 )
+	U_MsSetOrder("SA3","A3_FILIAL+A3_COD")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    				
+	nPerc := 0
+	
+	For nX := 1 To Len( aVendTemp )
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Verifica se o registro ja existe no SE3                             ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		DbSelectArea( "SE3" )
+		//DbSetOrder( 2 )
+		U_MsSetOrder("SE3","E3_FILIAL+E3_VEND+E3_PREFIXO+E3_NUM+E3_PARCELA+E3_SEQ")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    
+		
+		lSE3found := .F.
+		If MV_PAR09 == 1 .AND. lSE3Excl
+			cFilSE3 := (cAliasSL1)->L1_FILIAL
+		Else
+			cFilSE3 := xFilial("SE3")
+		Endif
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Procura o vendedor onde o array esta posicionado³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If DbSeek( cFilSE3 + aVendTemp[nX][1] + aVendTemp[nX][6] + aVendTemp[nX][5] )
+			If ( SE3->E3_ORIGEM == "L" ) .AND. ( SE3->E3_BAIEMI == "E" )
+				lSE3found := .T.
+			Endif
+		Endif
+		
+		cPrefixo  	:= LJPREFIXO( If( mv_par09 == 1, (cAliasSL1)->L1_FILIAL, NIL ) )
+		cVendedor 	:= aVendTemp[nX][1]
+		nComissao 	:= aVendTemp[nX][2]
+		nPerc     	:= aVendTemp[nX][3]
+		nValEmissao := aVendTemp[nX][7]
+		
+		DbSelectArea("SA3")
+		DbSeek( cFilSA3 + cVendedor )
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Grava o Registro no SE3                                             ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If aVendTemp[nX][7] > 0 .AND. !lSE3found
+			Reclock( "SE3", .T. )
+			
+			REPLACE SE3->E3_BASE    WITH nComissao
+			REPLACE SE3->E3_COMIS	WITH nValEmissao
+			REPLACE SE3->E3_FILIAL	WITH cFilSE3
+			REPLACE SE3->E3_VEND	WITH cVendedor
+			REPLACE SE3->E3_NUM 	WITH aVendTemp[nX][5]
+			REPLACE SE3->E3_SERIE	WITH aVendTemp[nX][6]
+			REPLACE SE3->E3_PORC	WITH nPerc
+			REPLACE SE3->E3_CODCLI	WITH (cAliasSL1)->L1_CLIENTE
+			REPLACE SE3->E3_LOJA	WITH (cAliasSL1)->L1_LOJA
+			REPLACE SE3->E3_EMISSAO	WITH (cAliasSL1)->L1_EMISSAO
+			REPLACE SE3->E3_VENCTO	WITH (cAliasSL1)->L1_EMISSAO
+			REPLACE SE3->E3_PREFIXO	WITH cPrefixo
+			REPLACE SE3->E3_BAIEMI	WITH "E"
+			REPLACE SE3->E3_ORIGEM	WITH "L"
+			REPLACE SE3->E3_PEDIDO	WITH (cAliasSL1)->L1_NUM
+			REPLACE SE3->E3_TIPO	WITH SE1->E1_TIPO
+			MsUnlock()
+		Endif
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Verifica se existe gerente ou supervisor                            ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		cSupervisor := SA3->A3_SUPER
+		cGerente    := SA3->A3_GEREN
+		
+		If !Empty( cSupervisor )
+			DbSelectArea( "SA3" )
+			//DbSetOrder(1)
+			U_MsSetOrder("SA3","A3_FILIAL+A3_COD")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    				
+			If DbSeek( cFilSA3 + cSupervisor )
+				If SA3->A3_COMIS > 0 .AND. SA3->A3_ALEMISS > 0
+					nPerc 		:= SA3->A3_COMIS * SA3->A3_ALEMISS / 100
+					nValEmissao := ( nComissao * nPerc ) / 100
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Verifica se o registro já existe no SE3                             ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					DbSelectArea("SE3")
+					//DbSetOrder(2)
+					U_MsSetOrder("SE3","E3_FILIAL+E3_VEND+E3_PREFIXO+E3_NUM+E3_PARCELA+E3_SEQ")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    
+					lSE3found := .F.
+					If DbSeek( cFilSE3 + cSupervisor + aVendTemp[nX][6] + aVendTemp[nX][5] + SE5->E5_PARCELA )
+						If ( SE3->E3_ORIGEM == "L" ) .AND. ( SE3->E3_BAIEMI == "E" )
+							lSE3found := .T.
+						Endif
+					Endif
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Grava o Registro no SE3                                             ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If aVendTemp[nX][7] > 0 .AND. !lSE3found
+						Reclock( "SE3", .T. )						
+						REPLACE SE3->E3_BASE	WITH nComissao
+						REPLACE SE3->E3_COMIS	WITH nValEmissao
+						REPLACE SE3->E3_FILIAL	WITH cFilSE3
+						REPLACE SE3->E3_VEND	WITH SA3->A3_COD
+						REPLACE SE3->E3_NUM 	WITH aVendTemp[nX][5]
+						REPLACE SE3->E3_SERIE	WITH aVendTemp[nX][6]
+						REPLACE SE3->E3_PORC	WITH nPerc
+						REPLACE SE3->E3_CODCLI	WITH (cAliasSL1)->L1_CLIENTE
+						REPLACE SE3->E3_LOJA	WITH (cAliasSL1)->L1_LOJA
+						REPLACE SE3->E3_EMISSAO	WITH (cAliasSL1)->L1_EMISSAO
+						REPLACE SE3->E3_VENCTO	WITH (cAliasSL1)->L1_EMISSAO
+						REPLACE SE3->E3_PREFIXO	WITH cPrefixo
+						REPLACE SE3->E3_BAIEMI	WITH "E"
+						REPLACE SE3->E3_ORIGEM	WITH "L"
+						REPLACE SE3->E3_PEDIDO	WITH (cAliasSL1)->L1_NUM
+						REPLACE SE3->E3_TIPO	WITH SE1->E1_TIPO						
+						MsUnlock()
+					Endif
+				Endif
+			Endif
+		Endif
+		
+		If !Empty( cGerente )
+			DbSelectArea( "SA3" )
+			
+			If DbSeek( cFilSA3 + cGerente )
+				If SA3->A3_COMIS > 0 .AND. SA3->A3_ALEMISS > 0
+					nPerc 		:= SA3->A3_COMIS * SA3->A3_ALEMISS / 100
+					nValEmissao := ( nComissao * nPerc ) / 100
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Verifica se o registro já existe no SE3                             ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					DbSelectArea("SE3")
+					//DbSetOrder(2)
+					U_MsSetOrder("SE3","E3_FILIAL+E3_VEND+E3_PREFIXO+E3_NUM+E3_PARCELA+E3_SEQ")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    
+					lSE3found := .F.
+					
+					If DbSeek( cFilSE3 + cGerente + aVendTemp[nX][6] + aVendTemp[nX][5] + SE5->E5_PARCELA )
+						If ( SE3->E3_ORIGEM == "L" ) .AND. ( SE3->E3_BAIEMI == "E" )
+							lSE3found := .T.
+						Endif
+					Endif
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Grava o Registro no SE3                                             ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If aVendTemp[nX][7] > 0 .AND. !lSE3found
+						Reclock( "SE3", .T. )						
+						REPLACE SE3->E3_BASE	WITH nComissao
+						REPLACE SE3->E3_COMIS	WITH nValEmissao
+						REPLACE SE3->E3_FILIAL	WITH cFilSE3
+						REPLACE SE3->E3_VEND	WITH SA3->A3_COD
+						REPLACE SE3->E3_NUM		WITH aVendTemp[nX][5]
+						REPLACE SE3->E3_SERIE	WITH aVendTemp[nX][6]
+						REPLACE SE3->E3_PORC	WITH nPerc
+						REPLACE SE3->E3_CODCLI	WITH (cAliasSL1)->L1_CLIENTE
+						REPLACE SE3->E3_LOJA	WITH (cAliasSL1)->L1_LOJA
+						REPLACE SE3->E3_EMISSAO	WITH (cAliasSL1)->L1_EMISSAO
+						REPLACE SE3->E3_VENCTO	WITH (cAliasSL1)->L1_EMISSAO
+						REPLACE SE3->E3_PREFIXO	WITH cPrefixo
+						REPLACE SE3->E3_BAIEMI	WITH "E"
+						REPLACE SE3->E3_ORIGEM	WITH "L"
+						REPLACE SE3->E3_PEDIDO	WITH (cAliasSL1)->L1_NUM
+						REPLACE SE3->E3_TIPO	WITH SE1->E1_TIPO						
+						MsUnlock() 
+					Endif
+				Endif
+			Endif
+		Endif
+	Next nX
+	DbSelectArea(cAliasSL1)
+	DbSkip()
+End
+If lTop
+	DbSelectArea(cAliasSL1)
+	DbCloseArea()
+	DbSelectArea("SL1")
+Endif      
+
+Return(Nil)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡„o    ³lj440ProcB   ³ Autor ³ Marcio Lopes          ³ Data ³21/06/06³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡„o ³Processa o c lculo das comissoes pelas Baixas                ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ ExpN1 = Casas decimais                                      ³±±
+±±³			 ³ ExpL2 = Se o SE1 eh exclusivo.      					       ³±±
+±±³			 ³ ExpL3 = Se a chamada eh do FINA070  					       ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³LOJA440                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÂÄÁÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³  DATA  ³ BOPS ³Program.³ ALTERACAO                                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³02/03/06³093556³Hanna C.³Verifica se o SL1 esta compartilhado, caso es- ³±±
+±±³        ³      ³        ³teja o cFilOriE5 deve ser "  " e nao o conteudo³±±
+±±³        ³      ³        ³do E1_FILORIG                                  ³±±
+±±³28/04/06³093556³Mansano ³Trata Trocas da Loja para aplicar NCC na       ³±±
+±±³        ³      ³        ³Comissao                                       ³±±
+±±³12/08/06³112589³Danilo  ³Para TOP, ao realizar busca no SE5, incluido o ³±±
+±±³        ³      ³Calil   ³alias para nao dar erro de nao ser a area      ³±±
+±±³        ³      ³        ³correte.                                       ³±±
+±±³26/12/06³205460³Danilo  ³Preparada a funcao para realizar a comissao on ³±±
+±±³        ³      ³Calil   ³line quando tiver sido realizada a baixa de um ³±±
+±±³        ³      ³        ³titulo pelo FINA070.                           ³±±
+±±³31/03/07³122373³Danilo  ³Reposiciona no SL1 para verificar qual o prefix³±±
+±±³        ³      ³Calil   ³que deve ser gravado.                          ³±±
+±±ÀÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+STATIC Function lj440ProcB(nDecs, lSe1Exclusivo, lFina070 )
+
+Local lVendaLoja	:= .F.											// Verifica se vai gerar SE3
+Local cChaveSE5		:= ""											// Chave a ser utilizada no SE5
+Local nComissao		:= 0											// Valor da comissao
+Local lDevolucao	:= SuperGetMv("MV_COMIDEV")						// Verifica se considera devolucao
+Local lSE3found		:= .F.											// Valida se encontrou o registro no SE3
+Local nSe5Valor		:= 0											// Valor do E5_VALOR
+Local nMoeda		:= 1											// Moeda utilizada
+Local cSerie		:= ""											// Serie do titulo gerado
+Local cPrefixo		:= ""											// Prefixo do titulo gerado
+Local nPerc 		:= 0											// Percentual de comissao
+Local lComisCC		:= ( Upper(SuperGetMV( "MV_COMISCC" )) == "S" )// Valida se considera valor inteiro ou valor real
+Local nReg			:= 0											// Recno do SE5
+Local nPercFret		:= 0											// Se nao calcular comissao com frete, calcula proporcional
+Local cFilDe    	:= ""											// Filial De
+Local cFilAte   	:= ""											// Filial Ate
+Local cFilSE5   	:= ""											// Filial do SE5
+Local cFilOriE5 	:= ""											// Filial de origem do SE5
+Local cGerente		:= ""											// Gerente do vendedor
+Local cSupervisor	:= ""											// Supervisor do vendedor
+Local cQuery    	:= ""											// Utilizada para montagegem da query
+Local lTop      	:= .F.				    						// Indica se utiliza BD
+Local cAliasSE5		:= "TMPE5"										// Alias SE5 quando utiliza Query
+Local cCond			:= ""	    									// Variavel utilizada para compor o While do arquivo SL1
+Local aStrutSE5 	:= {}											// Array utilizada para guardar a estrutura de alguns campos do SE5
+Local nX 			:= 0											// Variavel para FOR
+Local cAliasSL1		:= "TMPL1"										// Alias SL1 quando utiliza Query
+Local aStrutSL1		:= {}											// Array utilizada para guardar a estrutura de alguns campos do SL1
+Local nOpca			:= 0											// Opcao escolhida
+Local nCheck1		:= 0											// Check1
+Local nCheck2		:= 0											// Check2
+Local nCheck3		:= 0											// Check3
+Local lCont			:= .T.											// Se continua operacao
+Local nMv_Par01														// Primeiro parametro default do FINA070
+Local nMv_Par02														// Segundo parametro default do FINA070
+Local nMv_Par03														// Terceiro parametro default do FINA070
+Local nMv_Par04														// Quarto parametro default do FINA070
+Local nMv_Par05														// Quinto parametro default do FINA070
+Local nMv_Par06														// Sexto parametro default do FINA070
+Local nMv_Par07														// Setimo parametro default do FINA070
+Local nMv_Par08														// Oitavo parametro default do FINA070
+Local nMv_Par09            											// Nono parametro default do FINA070
+Local oDlgBx														// Objeto para baixa
+Local oFont															// Fonte para letras
+Local oCheck1                        								// Objeto para o Check1
+Local oCheck2                                                     	// Objeto para o Check2
+Local oCheck3            											// Objeto para o Check3
+
+Default nDecs 	 	  := MsDecimais(1)
+Default lSe1Exclusivo := IIf(!Empty(xFilial("SE1")),.T.,.F.)
+Default lFina070      := .F.
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Filtro por filial (caso o usuario selecione)                             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If !lFina070
+	If MV_PAR09 == 1
+		cFilDe  := MV_PAR10
+		cFilAte := MV_PAR11
+	Else
+		cFilDe := cFilAte := SE5->( xFilial( "SE5" ) )
+	Endif
+Else
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Inicializa a tela³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	DEFINE MSDIALOG oDlgBx FROM 39,85 TO 450,340 TITLE STR0011 PIXEL OF oMainWnd  								//"Calculo de comissao OnLine" 
+	DEFINE FONT oFont NAME "Ms Sans Serif" BOLD
+	//ÚÄÄÄÄÄÄÄÄÄÄ¿
+	//³Introducao³
+	//ÀÄÄÄÄÄÄÄÄÄÄÙ
+	@ 7, 4 TO 50, 121 LABEL STR0012 OF oDlgBx  PIXEL 															// Objetivo
+	@ 19, 15 SAY (STR0013) SIZE 100, 40 OF oDlgBx PIXEL FONT oFont   											//"Definir a regra do calculo de comissão Online"
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Primeira opcao³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	@ 55,4 TO 83,121 LABEL STR0014 OF oDlgBx  PIXEL 															//"Considera juros ? "
+	@ 62,10 RADIO oCheck1 VAR nCheck1 3D SIZE 60,10 PROMPT STR0015, STR0016 OF oDlgBx PIXEL 					//"Sim", "Não"
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Segunda opcao³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	@ 86,4 TO 115,121 LABEL STR0017 OF oDlgBx  PIXEL 															//"Considera descontos ? "
+	@ 94,10 RADIO oCheck2 VAR nCheck2 3D SIZE 60,10 PROMPT STR0015, STR0016 OF oDlgBx PIXEL 					// "Sim", "Não"
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Terceira opcao³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	@ 120,4 TO 167,121 LABEL STR0018 OF oDlgBx  PIXEL //"Prioridade : "
+	@ 128,10 RADIO oCheck3 VAR nCheck3 3D SIZE 60,10 PROMPT STR0019, STR0020, STR0021, STR0022 OF oDlgBx PIXEL 	//"Cliente", "Produto", "Vendedor", "Venda"
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Botao para "Confirmar"³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	DEFINE SBUTTON FROM 190, 65 TYPE 1;		
+	ACTION (nOpca := 1,IF(MsgYesNo(STR0023,STR0024),oDlgBx:End(),nOpca:=0)) ENABLE OF oDlgBx  				// "Confirma o processamento da comissão?","Atenção"
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Botao para "Cancelar"³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	DEFINE SBUTTON FROM 190, 94 TYPE 2;
+	ACTION ( oDlgBx:End(), lCont := .F. ) ENABLE OF oDlgBx
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Finaliza tela³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	ACTIVATE MSDIALOG oDlgBx CENTERED
+
+	If !lCont
+		Return NIL	
+	EndIf
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Armazena os parametros do FINA070 para depois³
+	//³restaurar                                    ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	nMv_Par01 := Mv_Par01
+	nMv_Par02 := Mv_Par02
+	nMv_Par03 := Mv_Par03
+	nMv_Par04 := Mv_Par04
+	nMv_Par05 := Mv_Par05
+	nMv_Par06 := Mv_Par06
+	nMv_Par07 := Mv_Par07
+	nMv_Par08 := Mv_Par08
+	nMv_Par09 := Mv_Par09
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Define os parametros para gerar comissao online³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	cFilDe 		:= cFilAte := SE5->( xFilial( "SE5" ) )
+	Mv_Par01 	:= SE1->E1_EMISSAO
+	Mv_Par02 	:= SE1->E1_EMISSAO
+	Mv_Par03	:= SE1->E1_VEND1
+	Mv_Par04	:= SE1->E1_VEND1
+	Mv_Par05	:= 2
+	Mv_Par06	:= nCheck1
+	Mv_Par07	:= nCheck2		
+	Mv_Par08	:= nCheck3
+	Mv_Par09	:= 2
+EndIf
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ A rotina esta considerando o vendedor pricipal da venda (L1_VEND)   ³
+//³ pois nao ha identificacao de valor baixado em relacao a um item ven-³
+//³ dido. - Nao alterar ***                                             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+#IFDEF TOP
+	If TcSrvType()<>"AS/400"	
+		lTop := .T.
+		cQuery := "SELECT 	E5_PREFIXO , E5_NUMERO , E5_PARCELA, E5_TIPO  , "
+		cQuery += 			"E5_CLIFOR , E5_LOJA   , E5_FILORIG, E5_DATA  , "
+		cQuery += 			"E5_RECPAG , E5_DOCUMEN, E5_TIPODOC, E5_SEQ   , "
+		cQuery += 			"E5_MOTBX  , E5_BANCO  , E5_AGENCIA, E5_CONTA , "
+		cQuery += 			"E5_VALOR  , E5_FILIAL"
+		cQuery += " FROM " + RetSqlName("SE5")
+		cQuery += " WHERE	E5_DATA >= '" + DtoS(MV_PAR01) + "' AND E5_DATA <= '" + DtoS(MV_PAR02) + "'"
+		If lSe1Exclusivo 
+			cQuery += " AND E5_FILIAL >= '" + cFilDe + "'"
+			cQuery += " AND E5_FILIAL <= '" + cFilAte + "'"
+		EndIf
+		cQuery += 	" AND D_E_L_E_T_ <> '*'
+		cQuery := ChangeQuery(cQuery)
+		DbUseArea(.T., "TOPCONN", TcGenQry( , , cQuery), cAliasSE5)
+    EndIf
+#ENDIF
+
+If lTop
+	AADD(aStrutSE5, {"E5_VALOR"	, "", "", ""} )
+	AADD(aStrutSE5, {"E5_DATA"	, "", "", ""} )
+	LJ440Stru(@aStrutSE5, "SE5")
+	If (cAliasSE5)->(!Eof())
+		For nX := 1 To Len(aStrutSE5)
+			TcSetField(cAliasSE5, aStrutSE5[nX,1], aStrutSE5[nX,2], aStrutSE5[nX,3], aStrutSE5[nX,4])
+		Next nX
+	EndIf
+	AADD(aStrutSL1, {"L1_MOEDA"		, "", "", ""} )
+	AADD(aStrutSL1, {"L1_EMISSAO"	, "", "", ""} )
+	AADD(aStrutSL1, {"L1_JUROS"		, "", "", ""} )
+	AADD(aStrutSL1, {"L1_FRETE"		, "", "", ""} )
+	AADD(aStrutSL1, {"L1_SEGURO"	, "", "", ""} )
+	AADD(aStrutSL1, {"L1_DESPESA"	, "", "", ""} )
+	AADD(aStrutSL1, {"L1_ABTOPCC"	, "", "", ""} )
+	AADD(aStrutSL1, {"L1_CARTAO"	, "", "", ""} )
+	LJ440Stru(@aStrutSL1, "SL1")
+
+	cCond := "!Eof()"  // Se o banco estiver em TOP a selecao sera somente ate EOF porque ja existe uma QUERY antes
+	DbSelectArea(cAliasSE5)
+Else
+	cAliasSL1 := "SL1"
+	cAliasSE5 := "SE5"
+	DbSelectArea(cAliasSE5)
+	DbSeek(iIf( lSe1Exclusivo, cFilDe, xFilial( "SE5" ) ) + DtoS( MV_PAR01 ) , .T. )
+	cCond := "!Eof() .AND. SE5->E5_DATA <= MV_PAR02"
+Endif
+
+While &cCond
+	If !lTop .AND. lSe1Exclusivo
+		If (cAliasSE5)->E5_FILIAL > cFilAte
+			Exit
+		Endif			
+	Endif	
+
+	
+	If ( !lSe1Exclusivo .AND. ! ( (cAliasSE5)->E5_FILORIG >= cFilDe .AND. (cAliasSE5)->E5_FILORIG <= cFilAte ) )
+		DbSkip()
+		Loop
+	Endif
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Chama ponto de entrada LJ440VLD³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If ExistBlock( "LJ440VLD" ) .AND. ! ExecBlock( "LJ440VLD", .F., .F., 2 )
+		DbSkip()
+		Loop
+	Endif
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Verifica se existe estorno para esta baixa                       ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If TemBxCanc(	(cAliasSE5)->E5_PREFIXO + (cAliasSE5)->E5_NUMERO + ;
+					(cAliasSE5)->E5_PARCELA + (cAliasSE5)->E5_TIPO   + ;
+					(cAliasSE5)->E5_CLIFOR  + (cAliasSE5)->E5_LOJA   + ;
+					(cAliasSE5)->E5_SEQ )                       
+					
+		DbSkip()
+		Loop
+	Endif
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Filtra somente as baixas a Receber                               ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If !((cAliasSE5)->E5_TIPODOC $ "VL/BA/LJ") .OR. (cAliasSE5)->E5_RECPAG == "P"
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Trata Trocas da Loja para aplicar NCC na Comissao  ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If (cAliasSE5)->E5_TIPODOC == "CP"
+			// Se o Documento for referente a uma NCC
+			If SubStr((cAliasSE5)->E5_DOCUMEN,11,3) == "NCC"
+				// Localiza a NCC para validar este Credito
+				cNumero := GetAdvFval("SE5", "E5_NUMERO", SubStr((cAliasSE5)->E5_DOCUMEN, 14, 02) + ;
+										SubStr( (cAliasSE5)->E5_DOCUMEN, 01, 13), 7, "Erro" )
+				If Empty(cNumero)
+					DbSkip()
+					Loop
+				Endif
+			Endif
+		Else
+			// Mantido Tratamento Inicial
+			If !((cAliasSE5)->E5_TIPODOC $ "VL/BA/LJ") .OR. (cAliasSE5)->E5_RECPAG == "P"
+				DbSkip()
+				Loop
+			Endif
+		Endif
+	Endif
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Verifica se foi gerado titulo e se foi baixado                   ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If ( (cAliasSE5)->E5_TIPODOC $ "BA" )
+		nReg := Recno()
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Busca o registro no E1 para verificar se foi gerado título no Financeiro pois o ³
+		//³usuário pode transformar 1 ou mais vendas em um único título e editar o prefixo ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		//SE1->( DbSetOrder( 1 ) )
+		U_MsSetOrder("SE1","E1_FILIAL+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    
+		If SE1->( DbSeek ( (cAliasSE5)->E5_FILIAL + (cAliasSE5)->E5_PREFIXO + (cAliasSE5)->E5_NUMERO ) )
+			If AllTrim( SE1->E1_FATURA ) <> ""
+				//SE5->( DbSetOrder( 7 ) )
+				U_MsSetOrder("SE5","E5_FILIAL+E5_PREFIXO+E5_NUMERO+E5_PARCELA+E5_TIPO+E5_CLIFOR+E5_LOJA+E5_SEQ")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    
+				If SE5->( DbSeek( SE1->E1_FILIAL + SE1->E1_FATPREF	+ SE1->E1_FATURA ) )
+					If TemBxCanc(	(cAliasSE5)->E5_PREFIXO	+ (cAliasSE5)->E5_NUMERO + (cAliasSE5)->E5_PARCELA	+ ;
+									(cAliasSE5)->E5_TIPO	+ (cAliasSE5)->E5_CLIFOR + (cAliasSE5)->E5_LOJA	+ ;
+									(cAliasSE5)->E5_SEQ )
+					
+						DbSelectArea( cAliasSE5 )
+						If !lTop
+							DbSetOrder( 1 )
+							DbGoTo( nReg )
+						EndIf
+						DbSkip()
+						Loop
+					Else
+						If !lTop
+							DbSelectArea( cAliasSE5 )
+							DbGoTo( nReg )
+						EndIf
+				    EndIf
+				Else
+					If !lTop
+						//SE5->( DbSetOrder( 1 ) )
+						U_MsSetOrder("SE5","E5_FILIAL+DTOS(E5_DATA)+E5_BANCO+E5_AGENCIA+E5_CONTA+E5_NUMCHEQ")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    
+						DbGoTo( nReg + 1 )
+					Else
+						(cAliasSE5)->(dbSkip())
+					EndIf
+					Loop
+				Endif
+			Endif
+		Endif
+	Endif
+	
+	If !lDevolucao
+		If (cAliasSE5)->E5_MOTBX == "DEV"
+			(cAliasSE5)->( DbSkip() )
+			Loop
+		Endif
+	Endif
+	
+	cChaveSe5:=	(cAliasSE5)->E5_PREFIXO	+ (cAliasSE5)->E5_NUMERO 		+ (cAliasSE5)->E5_PARCELA + ;
+				(cAliasSE5)->E5_TIPO 	+ Dtos( (cAliasSE5)->E5_DATA ) + (cAliasSE5)->E5_CLIFOR
+
+	cSerie		:= LJSE5SERIE( If(MV_PAR09 == 1, (cAliasSE5)->E5_FILIAL, Nil), cAliasSE5 )
+	cFilSE5		:= (cAliasSE5)->E5_FILIAL
+	
+	lVendaLoja := .F.
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Verifica se trata-se de um venda via SIGALOJA                    ³
+	//³ Verifica o intervalo de vendedor selecionado                     ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Busca o registro no E1 para verificar se foi gerado título no Financeiro pois o ³
+	//³usuário pode transformar 1 ou mais vendas em um único título e editar o prefixo ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	//SE1->( DbSetOrder( 1 ) )
+	U_MsSetOrder("SE1","E1_FILIAL+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    	
+	SE1->( DbSeek( (cAliasSE5)->E5_FILIAL 	+ (cAliasSE5)->E5_PREFIXO + (cAliasSE5)->E5_NUMERO + ;
+					(cAliasSE5)->E5_PARCELA	+ (cAliasSE5)->E5_TIPO ) )
+	
+	
+	If !Empty( xFilial( "SL1" ) )
+		cFilOriE5 := SE1->E1_FILORIG
+	Else
+		cFilOriE5 := "  "
+	Endif
+	If !lTop
+		DbSelectArea("SL1")
+		//DbSetOrder( 2 )			//L1_FILIAL+L1_SERIE+L1_DOC+L1_PDV
+		U_MsSetOrder("SL1","L1_FILIAL+L1_SERIE+L1_DOC+L1_PDV")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    							
+		lOkSL1 := ( DbSeek( cFilOriE5 + cSerie + (cAliasSE5)->E5_NUMERO )	.AND. ;
+						 	(cAliasSL1)->L1_VEND >= mv_par03 			    .AND. ;
+							(cAliasSL1)->L1_VEND <= mv_par04 )
+	Else
+		lOkSL1 := LJ440ExeQryL1(@cQuery, aStrutSL1, cAliasSL1, cFilOriE5, ;
+								cSerie, (cAliasSE5)->E5_NUMERO, 2, Nil, ;
+								Nil)
+	EndIf
+	If lOkSL1
+		While 	(cAliasSL1)->( !Eof() ) 							.AND. ;
+				cFilOriE5 				== (cAliasSL1)->L1_FILIAL 	.AND. ;
+				cSerie 		 			== (cAliasSL1)->L1_SERIE	.AND. ;
+				(cAliasSE5)->E5_NUMERO 	== (cAliasSL1)->L1_DOC     .AND. ;
+				!lVendaloja
+				
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³Verifico se o orcamento possui devolucao total³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If LJ440DevTotal( Iif( cPaisLoc == "BRA", (cAliasSE5)->E5_FILORIG, cFilOriE5 ), (cAliasSL1)->L1_NUM, cAliasSE5 )
+				(cAliasSL1)->( DbSkip() )
+				Loop
+			Endif
+			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Testamos CC de maneira separada em virtude dessa  forma de pgto gerar um codigo de cliente com o mesmo   ³
+			//³ mesmo codigo da Adm. de Cartao, isso se deve ao fato do titulo nessa forma ser contra essa Administradora³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If ( (cAliasSE5)->E5_CLIFOR == (cAliasSL1)->L1_CLIENTE .AND. (cAliasSE5)->E5_LOJA == (cAliasSL1)->L1_LOJA) .OR. ;
+				AllTrim( (cAliasSE5)->E5_TIPO ) $ "CC/CD/FI/VA/CO"
+				lVendaLoja := .T.
+			Else
+				(cAliasSL1)->( DbSkip() )
+            EndIf
+		End
+		
+		If lVendaloja
+			If cPaisLoc <> "BRA"
+				//SA6->( DbSetOrder( 1 ) )
+				U_MsSetOrder("SA6","A6_FILIAL+A6_COD+A6_AGENCIA+A6_NUMCON")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    							
+				SA6->( DbSeek( xFilial( "SA6" ) + (cAliasSE5)->E5_BANCO + (cAliasSE5)->E5_AGENCIA + (cAliasSE5)->E5_CONTA ) )
+				nMoeda	:= Max( SA6->A6_MOEDA, 1 )
+				nSe5Valor:= Round( xMoeda( (cAliasSE5)->E5_VALOR, nMoeda, 1, (cAliasSE5)->E5_DATA, nDecs + 1 ),nDecs )
+			Else
+				nSe5Valor := (cAliasSE5)->E5_VALOR
+			Endif
+			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³Caso o usuario nao esteja utilizando o parametro MV_COMISCC  ³
+			//³para venda com cartao, utilizar o valor inteiro para comissao³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If !lComisCC .AND. (cAliasSL1)->L1_CARTAO > 0
+				nSe5Valor := Posicione(	"SE1", 1, xFilial( "SE1" ) 	+ 	(cAliasSE5)->E5_PREFIXO + ;
+										(cAliasSE5)->E5_NUMERO		+	(cAliasSE5)->E5_PARCELA	+ ;
+										(cAliasSE5)->E5_TIPO, "SE1->E1_VLRREAL")
+			Endif
+			
+			nComissao := nSe5Valor
+			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Desconsidera na base da comissao o Acrescimo Financeiro			    ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			DbSelectArea( "SA3" )
+			//DbSetOrder( 1 )
+			U_MsSetOrder("SA3","A3_FILIAL+A3_COD")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    				
+			If DbSeek( xFilial( "SA3" ) + (cAliasSL1)->L1_VEND )
+				If SA3->A3_ACREFIN == "N"
+					nComissao := nComissao / ( ( (cAliasSL1)->L1_JUROS / 100 ) + 1 )
+				Endif
+			Endif
+			
+			
+			DbSelectArea( cAliasSE5 )
+			If !lTop
+				nRegSe5 := RecNo()
+			EndIf
+			If MV_PAR06 == 2
+				DbSelectArea( "SE5" )
+				//DbSetOrder( 2 )
+				U_MsSetOrder("SE5","E5_FILIAL+E5_TIPODOC+E5_PREFIXO+E5_NUMERO+E5_PARCELA+E5_TIPO+DtoS(E5_DATA)+E5_CLIFOR+E5_LOJA+E5_SEQ")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    				
+				If DbSeek( cFilSE5 + "JR" + cChaveSe5 )
+					If cPaisLoc <> "BRA"
+						//SA6->( DbSetOrder( 1 ) )
+						U_MsSetOrder("SA6","A6_FILIAL+A6_COD+A6_AGENCIA+A6_NUMCON")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    				
+						SA6->( DbSeek( 	xFilial( "SA6" ) + SE5->E5_BANCO + SE5->E5_AGENCIA + SE5->E5_CONTA ) )
+						nMoeda	:= Max( SA6->A6_MOEDA, 1 )
+						nSe5Valor:= Round( xMoeda( SE5->E5_VALOR, nMoeda, 1, SE5->E5_DATA, nDecs + 1 ), nDecs )
+					Else
+						nSe5Valor := SE5->E5_VALOR
+					Endif
+					nComissao -= nSe5Valor
+				Endif
+				If !lTop
+					(cAliasSE5)->( DbGoto( nRegSe5 ) )
+					(cAliasSE5)->( DbSetOrder( 1 ) )
+				EndIf
+			Endif
+			
+			If MV_PAR07 == 2
+				DbSelectArea( "SE5" )
+				//DbSetOrder( 2 )
+				U_MsSetOrder("SE5","E5_FILIAL+E5_TIPODOC+E5_PREFIXO+E5_NUMERO+E5_PARCELA+E5_TIPO+DtoS(E5_DATA)+E5_CLIFOR+E5_LOJA+E5_SEQ")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    				
+				If DbSeek( cFilSE5 + "DC" + cChaveSe5 )
+					If cPaisLoc <> "BRA"
+						//SA6->( DbSetOrder( 1 ) )
+						U_MsSetOrder("SA6","A6_FILIAL+A6_COD+A6_AGENCIA+A6_NUMCON")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+						SA6->( DbSeek( xFilial("SA6") + SE5->E5_BANCO + SE5->E5_AGENCIA + SE5->E5_CONTA ) )
+						nMoeda	:= Max( SA6->A6_MOEDA, 1 )
+						nSe5Valor:= Round( xMoeda( SE5->E5_VALOR, nMoeda, 1, SE5->E5_DATA, nDecs + 1 ), nDecs )
+					Else
+						nSe5Valor := SE5->E5_VALOR
+					Endif
+					nComissao += nSe5Valor
+				Endif
+				If !lTop
+					SE5->( DbGoto( nRegSe5 ) )
+					SE5->( DbSetOrder( 1 ) )
+				EndIf
+			Endif
+			
+			If SA3->A3_FRETE == 'N'
+				
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³No caso de venda parcelada e necessario verificar o percentual  ³
+				//³da parcela sobre o total, para excluir o frete proporcionalmente³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				nPercFret := ( ( SE5->E5_VALOR * 100 ) / ( (cAliasSL1)->L1_VLRTOT + (cAliasSL1)->L1_FRETE + (cAliasSL1)->L1_SEGURO + (cAliasSL1)->L1_DESPESA ) ) / 100
+				nComissao -= ( (cAliasSL1)->L1_FRETE + (cAliasSL1)->L1_SEGURO + (cAliasSL1)->L1_DESPESA ) * nPercFret
+			Endif
+			
+			If SA3->( DbSeek( xFilial( "SA3" ) + (cAliasSL1)->L1_VEND ) )
+				If MV_PAR08 == 1					// Cliente
+					SA1->( DbSetOrder( 1 ) )
+					U_MsSetOrder("SA1","A1_FILIAL+A1_COD+A1_LOJA")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+					SA1->( DbSeek( xFilial("SA1") + (cAliasSL1)->L1_CLIENTE ) )
+					nPerc := SA1->A1_COMIS
+					
+				ElseIf MV_PAR08 == 4 //Venda
+					//SE1->( DbSetOrder( 1 ) )
+					U_MsSetOrder("SE1","E1_FILIAL+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+					SE1->( DbSeek( (cAliasSE5)->E5_FILIAL + (cAliasSE5)->E5_PREFIXO + (cAliasSE5)->E5_NUMERO ) )
+					
+					If SE1->E1_VEND1 == (cAliasSL1)->L1_VEND .AND. SE1->E1_COMIS1 > 0
+						nPerc := SE1->E1_COMIS1
+					ElseIf SE1->E1_VEND2 == (cAliasSL1)->L1_VEND .AND. SE1->E1_COMIS2 > 0
+						nPerc := SE1->E1_COMIS2
+					ElseIf SE1->E1_VEND3 == (cAliasSL1)->L1_VEND .AND. SE1->E1_COMIS3 > 0
+						nPerc := SE1->E1_COMIS3
+					ElseIf SE1->E1_VEND4 == (cAliasSL1)->L1_VEND .AND. SE1->E1_COMIS4 > 0
+						nPerc := SE1->E1_COMIS4
+					ElseIf SE1->E1_VEND5 == (cAliasSL1)->L1_VEND .AND. SE1->E1_COMIS5 > 0
+						nPerc := SE1->E1_COMIS5
+					Endif
+				Else
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Para qualquer outra Prioridade pegar o percentual a partir do       ³
+					//³ Vendedor.No caso da Prioridade ser Produto temos a mesma dificuldade³
+					//³ de contemplar a Troca (L1_CREDITO) na comissao da Emissao, ou seja, ³
+					//³ nao conseguimos chegar no percentual exato.                         ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					nPerc := SA3->A3_COMIS
+				Endif
+				
+				nPerc		:= nPerc * SA3->A3_ALBAIXA / 100
+				nValEmissao	:= ( nComissao * ( nPerc / 100 ) )
+				
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³Posiciona no SL1³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				DbSelectArea("SL1")
+				//DbSetOrder(1)
+				U_MsSetOrder("SL1","L1_FILIAL+L1_NUM")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+				DbSeek((cAliasSL1)->L1_FILIAL + (cAliasSL1)->L1_NUM)
+
+				cPrefixo := LJPREFIXO( If(MV_PAR09 == 1, (cAliasSL1)->L1_FILIAL, Nil),  )
+				
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Verifica se o registro já existe no SE3                             ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				DbSelectArea( "SE3" )
+				//DbSetOrder( 2 )
+				U_MsSetOrder("SE3","E3_FILIAL+E3_VEND+E3_PREFIXO+E3_NUM+E3_PARCELA+E3_SEQ")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+				lSE3found := .F.
+				If DbSeek( xFilial( "SE3" ) + (cAliasSL1)->L1_VEND + cPrefixo + (cAliasSL1)->L1_DOC + (cAliasSE5)->E5_PARCELA )
+					If !lFina070
+						If ( SE3->E3_ORIGEM == "L" ) .AND. ( SE3->E3_BAIEMI == "B" )
+							lSE3found := .T.
+						Endif
+				    Else
+						While !EOF() .AND. xFilial( "SE3" ) + (cAliasSL1)->L1_VEND + cPrefixo + (cAliasSL1)->L1_DOC + (cAliasSE5)->E5_PARCELA == ;
+											SE3->E3_FILIAL + SE3->E3_VEND + SE3->E3_SERIE + SE3->E3_NUM + SE3->E3_PARCELA
+							If ( SE3->E3_ORIGEM == "L" ) .AND. ( SE3->E3_BAIEMI == "B" )
+								lSE3found := .T.
+							Endif
+						   	DbSkip()
+						   	Loop
+						End
+										    
+				    EndIf
+				Endif
+				
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Grava o Registro no SE3                                             ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If nValEmissao > 0 .AND. !lSE3found
+					Reclock("SE3",.T.)
+					REPLACE SE3->E3_BASE 	WITH nComissao
+					REPLACE SE3->E3_COMIS	WITH nValEmissao
+					REPLACE SE3->E3_FILIAL	WITH xFilial( "SE3" )
+					REPLACE SE3->E3_VEND	WITH (cAliasSL1)->L1_VEND
+					REPLACE SE3->E3_NUM 	WITH (cAliasSL1)->L1_DOC
+					REPLACE SE3->E3_SERIE	WITH cSerie
+					REPLACE SE3->E3_PORC	WITH nPerc
+					REPLACE SE3->E3_CODCLI	WITH (cAliasSL1)->L1_CLIENTE
+					REPLACE SE3->E3_LOJA	WITH (cAliasSL1)->L1_LOJA
+					REPLACE SE3->E3_EMISSAO	WITH (cAliasSE5)->E5_DATA
+					REPLACE SE3->E3_VENCTO 	WITH (cAliasSL1)->L1_EMISSAO
+					REPLACE SE3->E3_PREFIXO	WITH cPrefixo
+					REPLACE SE3->E3_BAIEMI 	WITH "B"
+					REPLACE SE3->E3_ORIGEM	WITH "L"
+					REPLACE SE3->E3_PEDIDO 	WITH (cAliasSL1)->L1_NUM
+					REPLACE SE3->E3_PARCELA	WITH (cAliasSE5)->E5_PARCELA
+					REPLACE SE3->E3_TIPO	WITH (cAliasSE5)->E5_TIPO
+					REPLACE SE3->E3_SEQ     WITH (cAliasSE5)->E5_SEQ
+					MsUnlock() 
+				Endif
+				
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Verifica se existe gerente ou supervisor                            ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				cSupervisor := SA3->A3_SUPER
+				cGerente    := SA3->A3_GEREN
+				
+				If !Empty( cSupervisor )
+					If SA3->( DbSeek( xFilial( "SA3" ) + cSupervisor ) )
+						If SA3->A3_COMIS > 0 .AND. SA3->A3_ALBAIXA > 0
+							
+							nPerc 		:= SA3->A3_COMIS * SA3->A3_ALBAIXA / 100
+							nValEmissao := ( nComissao * ( nPerc / 100 ) )
+							
+							//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+							//³ Verifica se o registro já existe no SE3                             ³
+							//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+							//SE3->( DbSetOrder( 2 ) )
+							U_MsSetOrder("SE3","E3_FILIAL+E3_VEND+E3_PREFIXO+E3_NUM+E3_PARCELA+E3_SEQ")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+							lSE3found := .F.
+							If SE3->( DbSeek( 	xFilial( "SE3" ) + cSupervisor + cPrefixo + (cAliasSL1)->L1_DOC + ;
+												(cAliasSE5)->E5_PARCELA ) )
+								If (SE3->E3_ORIGEM == "L") .AND. (SE3->E3_BAIEMI == "B")
+									lSE3found := .T.
+								Endif
+							Endif
+							
+							//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+							//³ Grava o Registro no SE3                                             ³
+							//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+							If nValEmissao > 0 .AND. !lSE3found
+								Reclock("SE3",.T.)
+								REPLACE SE3->E3_BASE 	WITH nComissao
+								REPLACE SE3->E3_COMIS	WITH nValEmissao
+								REPLACE SE3->E3_FILIAL	WITH xFilial()
+								REPLACE SE3->E3_VEND	WITH SA3->A3_COD
+								REPLACE SE3->E3_NUM		WITH (cAliasSL1)->L1_DOC
+								REPLACE SE3->E3_SERIE	WITH cSerie
+								REPLACE SE3->E3_PORC	WITH nPerc
+								REPLACE SE3->E3_CODCLI	WITH (cAliasSL1)->L1_CLIENTE
+								REPLACE SE3->E3_LOJA	WITH (cAliasSL1)->L1_LOJA
+								REPLACE SE3->E3_EMISSAO	WITH (cAliasSE5)->E5_DATA
+								REPLACE SE3->E3_VENCTO	WITH (cAliasSL1)->L1_EMISSAO
+								REPLACE SE3->E3_PREFIXO	WITH cPrefixo
+								REPLACE SE3->E3_BAIEMI	WITH "B"
+								REPLACE SE3->E3_ORIGEM	WITH "L"
+								REPLACE SE3->E3_PEDIDO	WITH (cAliasSL1)->L1_NUM
+								REPLACE SE3->E3_PARCELA	WITH (cAliasSE5)->E5_PARCELA
+								REPLACE SE3->E3_TIPO	WITH (cAliasSE5)->E5_TIPO
+								REPLACE SE3->E3_SEQ		WITH (cAliasSE5)->E5_SEQ
+								MsUnlock() 
+							Endif
+						Endif
+					Endif
+					
+					If !Empty( cGerente )
+						If SA3->( DbSeek( xFilial( "SA3" ) + cGerente ) )
+							If SA3->A3_COMIS > 0 .AND. SA3->A3_ALBAIXA > 0
+								
+								nPerc 		:= SA3->A3_COMIS * SA3->A3_ALBAIXA / 100
+								nValEmissao := ( nComissao * ( nPerc / 100 ) )
+								
+								//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+								//³ Verifica se o registro já existe no SE3                             ³
+								//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+								//SE3->( DbSetOrder( 2 ) )
+								U_MsSetOrder("SE3","E3_FILIAL+E3_VEND+E3_PREFIXO+E3_NUM+E3_PARCELA+E3_SEQ")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+								lSE3found := .F.
+								If SE3->( DbSeek( xFilial( "SE3" ) + cGerente + cSerie + (cAliasSL1)->L1_DOC + (cAliasSE5)->E5_PARCELA ) )
+									If ( SE3->E3_ORIGEM == "L" ) .AND. ( SE3->E3_BAIEMI == "B" )
+										lSE3found := .T.
+									Endif
+								Endif
+								
+								//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+								//³ Grava o Registro no SE3                                             ³
+								//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+								If nValEmissao > 0 .AND. !lSE3found
+									Reclock("SE3",.T.)
+									REPLACE SE3->E3_BASE	WITH nComissao
+									REPLACE SE3->E3_COMIS	WITH nValEmissao
+									REPLACE SE3->E3_FILIAL	WITH xFilial()
+									REPLACE SE3->E3_VEND	WITH SA3->A3_COD
+									REPLACE SE3->E3_NUM 	WITH (cAliasSL1)->L1_DOC
+									REPLACE SE3->E3_SERIE	WITH cSerie
+									REPLACE SE3->E3_PORC	WITH nPerc
+									REPLACE SE3->E3_CODCLI	WITH (cAliasSL1)->L1_CLIENTE
+									REPLACE SE3->E3_LOJA	WITH (cAliasSL1)->L1_LOJA
+									REPLACE SE3->E3_EMISSAO	WITH (cAliasSE5)->E5_DATA
+									REPLACE SE3->E3_VENCTO	WITH (cAliasSL1)->L1_EMISSAO
+									REPLACE SE3->E3_PREFIXO	WITH cPrefixo
+									REPLACE SE3->E3_BAIEMI	WITH "B"
+									REPLACE SE3->E3_ORIGEM	WITH "L"
+									REPLACE SE3->E3_PEDIDO	WITH (cAliasSL1)->L1_NUM
+									REPLACE SE3->E3_PARCELA	WITH (cAliasSE5)->E5_PARCELA
+									REPLACE SE3->E3_TIPO	WITH (cAliasSE5)->E5_TIPO
+									REPLACE SE3->E3_SEQ		WITH (cAliasSE5)->E5_SEQ
+									MsUnlock() 
+								Endif
+							Endif
+						Endif
+					Endif
+				Endif
+			Endif
+		Endif
+	Endif
+	If lTop
+		(cAliasSL1)->(DbCloseArea())
+	EndIf
+	DbSelectArea( cAliasSE5 )
+	DbSkip()
+End
+If lTop
+	DbSelectArea(cAliasSE5)
+	DbCloseArea()
+	DbSelectArea("SE5")
+EndIf
+
+If lFina070
+
+	Mv_Par01 := nMv_Par01
+	Mv_Par02 := nMv_Par02
+	Mv_Par03 := nMv_Par03
+	Mv_Par04 := nMv_Par04
+	Mv_Par05 := nMv_Par05
+	Mv_Par06 := nMv_Par06
+	Mv_Par07 := nMv_Par07
+	Mv_Par08 := nMv_Par08
+	Mv_Par09 := nMv_Par09
+
+EndIf
+
+Return NIL
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³Lj440AdmFiºAutor  ³Fernando Salvatori  º Data ³  14/10/2002 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Funcao que verifica a taxa da adm. financeira da venda para º±±
+±±º          ³calculo do valor base de comissao para o vendedor.          º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ LOJA440                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function Lj440AdmFin(cOrcamento, nDecs)                      
+
+Local nRet 	    := 0                  	//Valor utilizado na adm financeira para retorno
+Local aArea    	:= GetArea()           	//Area do arquivo atual
+Local aAreaSL4 	:= SL4->(GetArea())    //Area do arquivo SL4
+Local aAreaSAE 	:= SAE->(GetArea())    //Area do arquivo SA1
+Local cFilSL4  	:= xFilial( "SL4" )    //Filial do arquivo SL4
+Local cFilSAE  	:= xFilial( "SAE" )    //Filial do arquivo de administradoras financeiras
+Local cAdmFin  	:= ""                  //Codigo da Adm Financeira
+
+DbSelectArea( "SL4" )
+//DbSetOrder( 1 )
+U_MsSetOrder("SL4","L4_FILIAL+L4_NUM+L4_ORIGEM")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+If !DbSeek( cFilSL4+cOrcamento )
+	Return nRet
+Endif
+
+While 	(!Eof()) 				.AND.;
+ 		(cFilSL4 == L4_FILIAL)	.AND.;
+ 		(cOrcamento == L4_NUM)	
+ 		
+	If ( Alltrim(L4_FORMA) == "CC" )
+		cAdmFin := Left(L4_ADMINIS,3)
+		
+		DbSelectArea( "SAE" )
+		//DbSetOrder( 1 )
+		U_MsSetOrder("SAE","AE_FILIAL+AE_COD")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+		If ( DbSeek( cFilSAE+cAdmFin ) )
+			nRet += Round( ((SL4->L4_VALOR * AE_TAXA) / 100 ),nDecs)
+		Endif
+	Endif
+	
+	DbSelectArea( "SL4" )
+	DbSkip()
+End
+
+//Recuperando areas dos arquivos utilizados na venda
+SL4->(RestArea(aAreaSL4))
+SAE->(RestArea(aAreaSAE))
+
+//Recuperando area do arquivo atual
+RestArea(aArea)
+
+Return nRet
+	
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³LJ440DevToºAutor  ³Microsiga           º Data ³  03/03/06   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Funcao que determina se o orcamento selecionado possui     º±±
+±±º          ³ devolucao total                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ LOJA440                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function LJ440DevTotal( cFilOrig, cOrcamento, cAliasE5 )
+Local aArea      := GetArea()					// GetArea
+Local aAreaSL2   := SL2->( GetArea() )			// GetArea do SL2
+Local aAreaSE1   := SE1->( GetArea() )			// GetArea do SE1
+Local cSeekWhile := ""							// Variavel para busca
+Local lRet       := .T.							// Retorno da funcao
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Verifica qual o E1_FILORIG para encontrar os itens do orcamento³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+//SE1->( DbSetOrder( 1 ) )
+U_MsSetOrder("SE1","E1_FILIAL+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+If SE1->( DbSeek( (cAliasE5)->E5_FILIAL + (cAliasE5)->E5_PREFIXO + (cAliasE5)->E5_NUMERO + (cAliasE5)->E5_PARCELA + (cAliasE5)->E5_TIPO ) )
+	cFilOrig := SE1->E1_FILORIG
+Endif
+If Empty( xFilial( "SL2" ) )
+	cFilOrig := "  "
+Endif
+
+DbSelectArea( "SL2" )
+//DbSetOrder( 1 )
+U_MsSetOrder("SL2","L2_FILIAL+L2_NUM+L2_ITEM+L2_PRODUTO")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+DbSeek( cSeekWhile := cFilOrig + cOrcamento )
+
+While !Eof() .AND. cSeekWhile == SL2->L2_FILIAL + SL2->L2_NUM
+	If SL2->L2_STATUS <> "D" .AND. SL2->L2_VENDIDO == "S"
+		lRet := .F.
+		Exit
+	Endif
+	DbSkip()
+End
+
+RestArea( aAreaSE1 )
+RestArea( aAreaSL2 )
+RestArea( aArea )
+
+Return (lRet)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³LOJA440   ºAutor  ³Marcio Lopes        º Data ³  20/06/06   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Funcao retorna dados dos campos do arquivo SL1 do SX3.     º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºParametros³ ExpA1: Array contendo os campos a serem pesquisados no SX3 º±±
+±±º          ³ ExpC1: Alias do arquivo para verificacao de campo		  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ MP8                                                        º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function LJ440Stru(aStrut, cAlias)
+
+Local nX  := 0    		// Variavel do FOR
+Local lOk := .T.  		// Retorno da Funcao
+
+SX3->( DbSetOrder(2) )
+For nX := 1  to Len(aStrut)
+	If Upper(aStrut[nX, 1]) == "L1_ABTOPCC" .AND. cAlias == "SL1"
+		If SL1->(FieldPos(aStrut[nX, 1])) > 0
+			lOk := .T.
+		Else
+			lOk := .F.
+		Endif
+	Endif
+	If SX3->( DbSeek(aStrut[nX, 1])  )
+		lOk := .T.
+	Else
+		lOk := .F.
+	Endif
+	
+	If lOk
+		aStrut[nX, 2] := SX3->X3_TIPO
+		aStrut[nX, 3] := SX3->X3_TAMANHO
+		aStrut[nX, 4] := SX3->X3_DECIMAL
+	Endif
+Next nX
+Return(aStrut)
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³LJ440ExeQryL1 ºAutor  ³Marcio Lopes    º Data ³  22/06/06   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³  Funcao que cria e executa a query do SL1                  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºParametros³ ExpC1: Variavel deve ser passada por referencia, para ser  º±±
+±±º          ³ utilizada na query.                              		  º±±
+±±º          ³ ExpA1: Array contendo os campos do arquivo para utilizacao º±±
+±±º          ³ da funcao TcSetField.                                      º±±
+±±º          ³ ExpC2: Variavel utilizada para criacao da area temporaria  º±±
+±±º          ³ da query.                                                  º±±
+±±º          ³ ExpC3: Filial de origem do titulo.                         º±±
+±±º          ³ ExpC4: Serie da venda                                      º±±
+±±º          ³ ExpN1: Define qual condicional a ser utilizada			  º±±
+±±º          ³ ExpC5: Filial inicial									  º±±
+±±º          ³ ExpC6: Filial Final										  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ MP8                                                        º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function LJ440ExeQryL1(	cQuery, aStrutSL1, cAliasSL1, cFilOriE5, ;
+								cSerie, cE5numero, nQuery   , cFilDe   , ;
+								cFilAte)
+
+Local nX   := 0 				//Variavel do For
+Local lRet := .F.				//Retorno da funcao
+
+cQuery := "SELECT L1_FILIAL , L1_SERIE, L1_DOC	  , L1_NUM		, "
+cQuery +=        "L1_VEND   , L1_MOEDA, L1_LOJA	  , L1_EMISSAO	, "
+cQuery +=        "L1_JUROS  , L1_FRETE, L1_SEGURO , L1_DESPESA	, "
+cQuery +=        "L1_CREDITO" +  Iif(SL1->(FieldPos("L1_ABTOPCC")) > 0, ", L1_ABTOPCC, ", ", ")
+cQuery +=        "L1_CLIENTE, L1_LOJA , L1_TXMOEDA, L1_VLRTOT, "
+cQuery +=        "L1_CARTAO , L1_VALISS"
+cQuery += " FROM " + RetSqlName("SL1")
+If nQuery = 1
+	cQuery += " WHERE	L1_EMISSAO  >= '"  	+ DtoS(MV_PAR01)	+ "' AND "
+	cQuery += 			"L1_EMISSAO <= '"  	+ DtoS(MV_PAR02)	+ "' AND "
+	cQuery +=          	"L1_FILIAL  >= '"	+ cFilDe 			+ "' AND "
+	cQuery +=          	"L1_FILIAL  <= '"	+ cFilAte 			+ "' AND "
+	cQuery += 			"L1_DOC <> '' AND L1_VEND <> '' AND "
+	cQuery += 			"D_E_L_E_T_ <> '*'"
+Else
+	cQuery += " WHERE	L1_FILIAL  = '" + cFilOriE5 + "' AND L1_SERIE  = '" + cSerie	+ "' AND "
+	cQuery +=          	"L1_DOC    = '" + cE5numero 						            + "' AND "
+	cQuery += 			"L1_VEND >= '"  + MV_PAR03 + "' AND L1_VEND <= '" 	+ MV_PAR04	+ "' AND "
+	cQuery += 			"D_E_L_E_T_ <> '*' "
+EndIf	
+
+cQuery := ChangeQuery(cQuery)
+DbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cAliasSL1)
+If (cAliasSL1)->(!Eof())
+	For nX := 1 To Len(aStrutSL1)
+		TcSetField(cAliasSL1, aStrutSL1[nX,1], aStrutSL1[nX,2], aStrutSL1[nX,3], aStrutSL1[nX,4])
+	Next nX
+EndIf
+lRet := !Eof()
+
+Return(lRet)

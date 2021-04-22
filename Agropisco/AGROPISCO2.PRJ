@@ -1,0 +1,476 @@
+Group AGROPISCO
+   Version=7.0
+   VSSDB=
+   HasProperties=1
+   Properties
+      BeforeApply=
+      AfterApply=
+      Icon=
+      ID=
+      Version=
+      PalmName=
+      OutPut=
+   End
+   ProjectsCount=8
+   Project Loja
+      FoldersCount=6
+      Folder Scripts
+         VSSPath=Fontes
+         FilesCount=1
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Scripts\SCRORC.PRW
+             Type=T
+         End
+      End
+      Folder Pontos de Entrada
+         VSSPath=Nova Pasta2
+         FilesCount=10
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Ponto de Entrada\GQRENTR.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Ponto de Entrada\MT116AGR.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Ponto de Entrada\LJ7001.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Ponto de Entrada\LJ7002.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Ponto de Entrada\MT100GRV.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Ponto de Entrada\FA100TRF.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Ponto de Entrada\LJ7016.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Ponto de Entrada\LjkeyF6.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Ponto de Entrada\LjKeyCTRLI.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Ponto de Entrada\LJ7067.PRW
+             Type=T
+         End
+      End
+      Folder ExecBlocks
+         VSSPath=Nova Pasta4
+         FilesCount=2
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\ExecBlocks\AtuVal.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\ExecBlocks\PrcTab.PRW
+             Type=T
+         End
+      End
+      Folder Relatorios
+         VSSPath=Nova Pasta5
+         FilesCount=3
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Relatorios\RESUMO.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Relatorios\GERACOM.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Relatorios\ResCai.prw
+             Type=T
+         End
+      End
+      Folder Cadastros
+         VSSPath=Nova Pasta6
+         FilesCount=1
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Cadastros\SANGRIA-TROCO.PRW
+             Type=T
+         End
+      End
+      Folder Processamento
+         VSSPath=Nova Pasta6
+         FilesCount=2
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Processamento\AGPLOJP001.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\LOJA\Processamento\AgLojP02.prw
+             Type=T
+         End
+      End
+   End
+   Project Estoque
+      FoldersCount=6
+      Folder Processos
+         VSSPath=Nova Pasta1
+         FilesCount=1
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\ESTOQUE\IniEnd.prw
+             Type=T
+         End
+      End
+      Folder Pontos de Entrada
+         VSSPath=Nova Pasta2
+         FilesCount=4
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\ESTOQUE\Pontos de Entrada\M261BCHOI.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\ESTOQUE\Pontos de Entrada\MA261CPO.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\ESTOQUE\Pontos de Entrada\M261D3O.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\ESTOQUE\Pontos de Entrada\MTA265E.prw
+             Type=T
+         End
+      End
+      Folder Cadastros
+         VSSPath=Nova Pasta3
+         FilesCount=2
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\ESTOQUE\Cadastro\AGPA010.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\ESTOQUE\Cadastro\AGPA003.prw
+             Type=T
+         End
+      End
+      Folder Relatorios
+         VSSPath=Nova Pasta4
+         FilesCount=2
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\ESTOQUE\Relatorios\uMATR280.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\ESTOQUE\Relatorios\uMATR440.prw
+             Type=T
+         End
+      End
+      Folder Etiqueta
+         VSSPath=Nova Pasta5
+         FilesCount=1
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\ESTOQUE\Etiqueta\ZEBRA.PRW
+             Type=T
+         End
+      End
+      Folder ExecBlock
+         VSSPath=Nova Pasta6
+         FilesCount=1
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\ESTOQUE\ExecBlock\BxConsumo.PRW
+             Type=T
+         End
+      End
+   End
+   Project Field Service
+      FoldersCount=5
+      Folder Relatorios
+         VSSPath=Nova Pasta1
+         FilesCount=4
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\RAGRO001.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\Relatorios\UTECR400.PRX
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\Relatorios\RAGRO007.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\Relatorios\RAGRO008.prw
+             Type=T
+         End
+      End
+      Folder ExecBlock
+         VSSPath=Nova Pasta2
+         FilesCount=10
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\ExecBlock\AGROFLD001.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\ExecBlock\AGRO003.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\ExecBlock\AGRO002.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\ExecBlock\ExeVerEst.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\ExecBlock\AGRO004.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\ExecBlock\AGRO005.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\ExecBlock\AGRO006.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\MostraOS.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\ExecBlock\AGRO007.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\ExecBlock\AGPE002.PRW
+             Type=T
+         End
+      End
+      Folder Contratos
+         VSSPath=Nova Pasta3
+         FilesCount=2
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\Contratos\INTWORD.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\Contratos\COMPENT.PRW
+             Type=T
+         End
+      End
+      Folder Pontos de Entrada
+         VSSPath=Nova Pasta4
+         FilesCount=4
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\Pontos de Entrada\AT400ROT.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\Pontos de Entrada\AT400GRV.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\Pontos de Entrada\AT450GRV.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\Pontos de Entrada\AT400TOK.PRW
+             Type=T
+         End
+      End
+      Folder Processamento
+         VSSPath=Nova Pasta5
+         FilesCount=1
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Field Service\Processamento\AjustaSB3.prw
+             Type=T
+         End
+      End
+   End
+   Project Faturamento
+      FoldersCount=9
+      Folder Scripts
+         VSSPath=Nova Pasta1
+         FilesCount=4
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Scripts\AGPFATS001.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Scripts\ORCAGRO.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Scripts\AGPFATS2.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Scripts\AGPFATS3.PRW
+             Type=T
+         End
+      End
+      Folder Pontos de Entrada
+         VSSPath=Nova Pasta2
+         FilesCount=12
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Ponto de Entrada\M415GRV.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Ponto de Entrada\MT416FIM.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Ponto de Entrada\SF2460I.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Ponto de Entrada\A415TDOK.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Ponto de Entrada\m410vis.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Ponto de Entrada\m410get.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Ponto de Entrada\m410abn.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Ponto de Entrada\a410cons.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Ponto de Entrada\mta410.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Ponto de Entrada\M410STTS.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Ponto de Entrada\MT415AUT.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Ponto de Entrada\M410PVNF.PRW
+             Type=T
+         End
+      End
+      Folder ExecBlock
+         VSSPath=Nova Pasta3
+         FilesCount=2
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\ExecBlock\AGPE001.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\ExecBlock\parcfat.prw
+             Type=T
+         End
+      End
+      Folder Processamento
+         VSSPath=Nova Pasta4
+         FilesCount=0
+      End
+      Folder ECFFAT
+         VSSPath=Nova Pasta5
+         FilesCount=2
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\ECFFAT\M461impf.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\ECFFAT\MS520VLD.PRX
+             Type=T
+         End
+      End
+      Folder RELATORIOS
+         VSSPath=Nova Pasta6
+         FilesCount=4
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Relatorios\AGFATR01.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Relatorios\AGFATR02.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Relatorios\AGFATR03.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Relatorios\AGFATR10.prw
+             Type=T
+         End
+      End
+      Folder Cadastros
+         VSSPath=Nova Pasta7
+         FilesCount=2
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Cadastros\AGFATC01.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Cadastros\AGFATC02.prw
+             Type=T
+         End
+      End
+      Folder Nfe20
+         VSSPath=Nova Pasta8
+         FilesCount=4
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Nfe20\nfesefaz.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Nfe20\danfeii.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\Nfe20\danfeiii.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\NFSE\nfsexmlenv.prw
+             Type=T
+         End
+      End
+      Folder NFSE
+         VSSPath=Nova Pasta9
+         FilesCount=3
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\NFSE\NFSEXml002.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\NFSE\NFSEXml001.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\FATURAMENTO\NFSE\nfsexmlenv.prw
+             Type=T
+         End
+      End
+   End
+   Project Diversos
+      FoldersCount=2
+      Folder Diversos
+         VSSPath=Nova Pasta1
+         FilesCount=3
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Diversos\MSSETORDER.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Diversos\AgrLojP1.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Diversos\AgrLojP2.prw
+             Type=T
+         End
+      End
+      Folder Ponto de Entrada
+         VSSPath=Nova Pasta2
+         FilesCount=0
+      End
+   End
+   Project Financeiro
+      FoldersCount=3
+      Folder Relatorios
+         VSSPath=Nova Pasta1
+         FilesCount=3
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Financeiro\Relatorios\SCRRECBX.PRW
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Financeiro\Relatorios\BLTCD001.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Financeiro\Relatorios\UFINR130.PRW
+             Type=T
+         End
+      End
+      Folder Processamento
+         VSSPath=Nova Pasta2
+         FilesCount=1
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Financeiro\Processamento\GrvCtRec.prw
+             Type=T
+         End
+      End
+      Folder Pontos de entrada
+         VSSPath=Nova Pasta3
+         FilesCount=1
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Financeiro\Ponto de Entrada\FA60FIL.prw
+             Type=T
+         End
+      End
+   End
+   Project Compras
+      FoldersCount=1
+      Folder Script
+         VSSPath=Nova Pasta1
+         FilesCount=2
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\ESTOQUE\Scripts\AGPENTP001.prw
+             Type=T
+         End
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\ESTOQUE\Scripts\AGPENTP002.prw
+             Type=T
+         End
+      End
+   End
+   Project Contabilidade
+      FoldersCount=1
+      Folder ExecBlock
+         VSSPath=Nova Pasta1
+         FilesCount=1
+         File \TOTVS 11\Microsiga\my projects\AGROPISCO\Contabilidade\ExecBlock\AGCTBE01.PRW
+             Type=T
+         End
+      End
+   End
+   BatchBuild_Item0=Loja · AGROPISCO
+   BatchBuild_Item1=Loja · COMPILACAO
+   BatchBuild_Item2=Loja · TESTE
+   BatchBuild_Item3=Loja · ECF
+   BatchBuild_Item4=Estoque · AGROPISCO
+   BatchBuild_Item5=Estoque · COMPILACAO
+   BatchBuild_Item6=Estoque · TESTE
+   BatchBuild_Item7=Estoque · ECF
+   BatchBuild_Item8=Field Service · AGROPISCO
+   BatchBuild_Item9=Field Service · COMPILACAO
+   BatchBuild_Item10=Field Service · TESTE
+   BatchBuild_Item11=Field Service · ECF
+   BatchBuild_Item12=Faturamento · AGROPISCO
+   BatchBuild_Item13=Faturamento · COMPILACAO
+   BatchBuild_Item14=Faturamento · TESTE
+   BatchBuild_Item15=Faturamento · ECF
+   BatchBuild_Item16=Diversos · AGROPISCO
+   BatchBuild_Item17=Diversos · COMPILACAO
+   BatchBuild_Item18=Diversos · TESTE
+   BatchBuild_Item19=Diversos · ECF
+End

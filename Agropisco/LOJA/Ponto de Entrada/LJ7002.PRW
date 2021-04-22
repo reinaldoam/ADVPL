@@ -1,0 +1,243 @@
+//
+// Ponto de entrada chamado apos a gravacao do orcamento de vendas
+//
+USER Function LJ7002
+   Local cNat,nReg
+   Local aArea      := GetArea()
+   Local cArqNota   := "\BOLETOS\"+SL1->(L1_DOC+L1_SERIE)
+   Local cEOL       := CHR(13)+CHR(10)
+   Local cSeq       := "01"
+   Local cBcoPad    := GetMv("MV_BCOBOL") //- Banco padrao para geracao de boleto
+   Local cTpOrc     := GetMv("MV_XTPORC") //- Tipo de relatório (1=Matricial 2=Não fiscal)
+   Local lTemBoleto := .F.
+   Local cFilSE1    := SE1->(xFilial("SE1"))
+   Local cwBusca    := SL1->(L1_FILIAL+L1_CLIENTE+L1_LOJA+L1_SERIE+L1_DOC)             
+   Local cwAux      := SL1->(L1_FILIAL+L1_CLIENTE+L1_LOJA+L1_SERIE+L1_DOC)
+   Local awVetAux   := {} 
+   Local cwFilial   := SL1->L1_FILIAL  
+   Local cwNumero   := SL1->L1_DOC 
+   Local cwPrefixo  := SL1->L1_SERIE 
+   Local cwCliente  := SL1->L1_CLIENTE 
+   Local cwLoja     := SL1->L1_LOJA 
+   Local cwNumOS    := SL1->L1_XNUMOS 
+   Local cwNumOrc   := SL1->L1_NUM
+   Local xNil
+// aAdd(awVetAux, {SL1->L1_FILIAL,SL1->L1_CLIENTE,SL1->L1_LOJA,SL1->L1_SERIE,SL1->L1_DOC} )
+
+   //- Verificando se o campo L1_TIPO = V, caso afirmativo, trata-se de uma venda finalizada.
+   If Empty(SL1->L1_TIPO)
+      If cTpOrc = "1"
+         U_SCRORC(1) //- Orçamento em matricial
+      Else 
+         U_SCRNFISC(.T.,"BALCÃO") //- Orçamento em impressora não fiscal (balcão)
+         If MsgYesNo("Imprime separação ?")                             
+            U_SCRNFISC(.T.,"SEPARAÇÃO") //- Orçamento em impressora não fiscal (separação)
+         Endif
+      Endif   
+   Endif
+
+   If !Empty(SL1->L1_TIPO) // Se for finalização de venda
+      //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+      //³ Gravando lista de preços ³
+      //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+      SD2->(dbSetOrder(3)) //- Item nota fiscal
+      SD2->(DbSeek(SL1->(L1_FILIAL+L1_DOC+L1_SERIE),.T.))
+      
+      While !SD2->(Eof()) .And. SL1->(L1_FILIAL+L1_DOC+L1_SERIE) == SD2->(D2_FILIAL+D2_DOC+D2_SERIE)
+         Reclock("SD2",.F.)
+         SD2->D2_XPRCTAB := Posicione("SB0",1,xFilial("SB0")+SD2->D2_COD,"B0_PRV1")
+         SD2->D2_XCODFAB := Posicione("SB1",1,xFilial("SB1")+SD2->D2_COD,"B1_XCODFAB")
+         SD2->(MsUnlock())
+         SD2->(DbSkip())
+      Enddo
+      
+      // Calcula o nome do arquivo de LOG
+      While File(cArqNota+cSeq+".LOG")
+         cSeq := StrZero(Val(cSeq)+1,2)
+      Enddo
+
+      // Cria o arquivo em disco
+      xNil := MsFCreate(cArqNota+cSeq+".LOG")
+
+      //- Parametros bancos
+      SEE->(DbSetOrder(1))        
+      If SEE->(dbSeek(xFilial("SEE")+cBcoPad))
+         FWrite(xNil,"01 - ENTROU SEE : "+SEE->EE_CODIGO+SEE->EE_AGENCIA+SEE->EE_CONTA+cEOL)
+      Else
+         FWrite(xNil,"01 - SAIU SEE.. : "+cBcoPad+cEOL)
+      Endif
+
+      //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+      //³ Atualizando dados do portador                    ³
+      //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+      //cwBusca := fTabTmp(Alltrim(awVetAux[1]), Alltrim(awVetAux[2]), Alltrim(awVetAux[3]), Alltrim(awVetAux[4]), Alltrim(awVetAux[5]))
+      cwBusca := fTabTmp(cwFilial, cwNumero, cwPrefixo, cwCliente, cwLoja)
+      
+      dbSelectArea("SE1")
+      dbSetOrder(1)
+      dbGoTop()      
+
+      If dbSeek(cwBusca)
+         FWrite(xNil,"02 - ENTROU SE1 : "+cwBusca+" - Registro: "+RTrim(Str(SE1->(Recno()),10))+cEOL)
+      Else
+         FWrite(xNil,"02 - SAIU SE1.. : "+cwBusca+cEOL) 
+         cwArea := GetARea() 
+      Endif
+
+      nReg := SE1->(Recno())       
+                                        
+      //WWW->(E1_FILIAL + E1_PREFIXO + E1_NUM  + E1_PARCELA + E1_TIPO)
+      While !SE1->(Eof()) .And. cwBusca == SE1->(E1_FILIAL + E1_PREFIXO + E1_NUM  + E1_PARCELA + E1_TIPO)
+
+         RecLock("SE1",.F.)
+         SE1->E1_ADM:= SE1->E1_CLIENTE
+
+         //- Cartao de credito/debito
+         If ALLTRIM(SE1->E1_TIPO) $ "CC#CD"
+            cNat:= Posicione("SAE",1,xFilial("SAE")+Trim(SE1->E1_CLIENTE),"AE_NATUREZ")
+            SE1->E1_NATUREZ := If(!Empty(cNat),cNat,"CARTAO")
+         Endif
+
+         //- Deposito C/C
+         If ALLTRIM(SE1->E1_TIPO) $ "DP"
+            SE1->E1_NATUREZ := GetMv("MV_NATDEPO")
+         Endif
+
+         //- Boleto bancario
+         FWrite(xNil,"03 - ENTROU LOOP: Parcela "+SE1->E1_PARCELA+", Tipo: "+SE1->E1_TIPO+" - Registro: "+RTrim(Str(SE1->(Recno()),10))+cEOL)
+         If ALLTRIM(SE1->E1_TIPO) $ "BO#FI"
+            FWrite(xNil,"04 - ENTROU CONDICAO E GRAVOU REGISTRO ACIMA."+cEOL)
+            SE1->E1_PORTADO := SEE->EE_CODIGO
+            SE1->E1_AGEDEP  := SEE->EE_AGENCIA
+            SE1->E1_CONTA   := SEE->EE_CONTA
+            SE1->E1_SITUACA := "0"
+            lTemBoleto      := .T.
+         Endif
+         MsUnLock()
+
+         SE1->(dbSkip())
+      Enddo
+
+      //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+      //³ Impressao do boleto bancario  ³
+      //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+      If lTemBoleto
+         FWrite(xNil,"05 - TEM BOLETO PARA IMPRESSAO."+cEOL)
+         SE1->(dbGoTo(nReg))
+         //U_BLTCD001(.T.,xNil,'LJ')
+         //U_AGFINR03(.T.,xNil,'LJ') //AG: 1208-4
+         U_AGFINR04(.T.,xNil,'LJ') //AG: 5927-7
+      Endif
+      //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+      //³ Gravando numero do orçamento na O.S  ³
+      //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+      If !Empty(cwNumOS) 
+         GrvField(cwNumOrc, cwNumOS)
+      Endif
+
+      FWrite(xNil,"07 - PROCESSO FINALIZADO."+cEOL)
+      FClose(xNil)
+   Endif
+   //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+   //³ Faz checagem CFOP/CST ³
+   //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+   If Empty(SL1->L1_DOC)
+      ChkCST()  
+   Endif      
+   RestArea(aArea)
+Return
+
+
+
+//*****************************************************************************************************
+// Wermeson em 13 de julho de 2009
+//*****************************************************************************************************
+
+Static Function fTabTmp(cwFilial, cwNumero, cwPrefixo, cwCliente, cwLoja)
+        
+Local cQuery := ""
+Local cRet   := ""
+
+ cQuery := " SELECT * "
+ cQuery += "  FROM "+RetSQLName("SE1")+" SE1 "   
+ cQuery += " WHERE SE1.D_E_L_E_T_ <> '*' "
+ cQuery += " AND E1_FILIAL  = '"+cwFilial +"' "
+ cQuery += " AND E1_NUM     = '"+cwNumero +"' "
+ cQuery += " AND E1_PREFIXO = '"+cwPrefixo+"' "
+ cQuery += " AND E1_CLIENTE = '"+cwCliente+"' "
+ cQuery += " AND E1_LOJA    = '"+cwLoja   +"' "
+   
+ dbUseArea( .T., "TOPCONN", TcGenQry(,,CHANGEQUERY(cQuery)), "WWW", .T., .F. )  
+
+ If WWW->(EOF())              
+//   Alert("Naum encontrado o Registro")
+   qout(cQuery)
+   Else 
+   cRet :=AllTrim( WWW->(E1_FILIAL + E1_PREFIXO + E1_NUM  + E1_PARCELA + E1_TIPO))
+ EndIF
+ WWW->(dbCloseArea())
+Return cRet 
+
+////////////////////////////////////////////
+Static Function GrvField(cwNumOrc, cwNumOS)
+  Local cSql
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Gravando numero do orçamento na orcamento do field o numero de orçamento do loja ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  cSql := "UPDATE "+RetSqlName("AB3")
+  cSql += " SET AB3_XNRORC = '"+cwNumOrc+"'"
+  cSql += " FROM "+RetSqlName("AB3") + " A, " + RetSqlName("AB6") + " B "
+  cSql += " WHERE A.D_E_L_E_T_ <> '*' AND B.D_E_L_E_T_ <> '*' AND "
+  cSql += " AB3_FILIAL = '"+xFilial("AB3")+"' AND "
+  cSql += " AB6_FILIAL = '"+xFilial("AB6")+"' AND "
+  cSql += " AB6_NUMOS = '"+cwNumOS+"' AND "
+  cSql += " AB6_NUMORC = AB3_NUMORC
+  TcSqlExec(cSql)
+
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Gravando na OS o numero de orçamento do loja ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  cSql := "UPDATE "+RetSqlName("AB6")
+  cSql += " SET AB6_XNRORC = '"+cwNumOrc+"'"
+  cSql += " WHERE AB6_FILIAL = '"+xFilial("AB6")+"' AND "
+  cSql += " AB6_NUMOS = '"+cwNumOS+"'"
+  TcSqlExec(cSql)
+Return
+
+////////////////////////
+Static Function ChkCST
+  Local cAlias := Alias()
+                   
+  //- Produtos
+  DbSelectArea("SB1")
+  DbSetOrder(1)
+
+  //- Item do orçamento
+  DbSelectArea("SL2")
+  DbSetOrder(1)
+  DbSeek(xFilial("SL2")+SL1->L1_NUM)
+         
+  Do While !SL2->(Eof()) .And. SL2->L2_FILIAL==xFilial("SL2") .And. SL2->L2_NUM == SL1->L1_NUM   
+     
+     SB1->(DbSeek(xFilial("SB1")+SL2->L2_PRODUTO))
+
+     If Alltrim(SL2->L2_CF) $ "5405\6405" .And. Substr(SL2->L2_CLASFIS,2,2) <>"60"
+        Reclock("SL2",.F.)
+        Replace L2_CLASFIS With SB1->B1_ORIGEM+"60"
+        MsUnLock()
+     ElseIf Alltrim(SL2->L2_CF) $ "5102\6102" .And. !Substr(SL2->L2_CLASFIS,2,2) $ "00\20"
+        If SL2->L2_TES = '501'
+           Reclock("SL2",.F.)
+           Replace L2_CLASFIS With SB1->B1_ORIGEM+"00"
+           MsUnLock()
+        ElseIf SL2->L2_TES $ '565\566'
+           Reclock("SL2",.F.)
+           Replace L2_CLASFIS With SB1->B1_ORIGEM+"20"
+           MsUnLock()
+        Endif
+     Endif
+     SL2->(DbSkip())   
+  Enddo   
+  dbSelectArea(cAlias)
+Return

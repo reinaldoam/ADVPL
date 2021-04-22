@@ -1,0 +1,211 @@
+#include "rwmake.ch"
+
+//
+// ExecBlock para validar o desconto maximo permitido (Parametro MV_DESCORC)
+// Gatilho: CK_PRCVEN Seq:001
+//
+//U_AGPE001(M->CK_PRODUTO,M->CJ_TABELA,M->CK_PRCVEN,TMP1->CK_QTDVEN)
+
+User Function AGPE001(cProduto,cTabela,nPrcVen,nQuant)
+  Local nPrcTabela, nDescV:= 0,nRet:= 0
+  Local nDescMax  := GetMv("MV_DESCORC")                                           
+  Local mUsuario  := ALLTRIM(Upper(SubStr(cUsuario, 7, 15))) 
+  Local cNivel1   := ALLTRIM(GetMv("MV_DESCUS1")) // Desconto gerente
+  Local cNivel2   := ALLTRIM(GetMv("MV_DESCUS2")) // Desconto diretoria    
+  Local nDesc     := 0          
+  Local cSenhaSup := Space(6)
+  Local nAcesso   := 11 
+  Local cCaixaSup := Space(15)
+    
+  nDesc := Ascan(aHeader,{|x|x[2] == "CK_VALDESC"})   
+  
+  cTabela:= If(Empty(cTabela),"001",cTabela)
+  
+  nPrcTabela:= a415Tabela(cProduto,cTabela,nQuant)                     
+           
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Verifica se o desconto está acima do permitido  ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  nRet:= M->CK_DESCONT
+  
+  If nPrcVen < nPrcTabela
+     nDescV:= Round((1-(nPrcVen / nPrcTabela))*100,2) 
+     If !UsrAltDesc(nDescV, nDescMax, mUsuario, cNivel1, cNivel2) 
+        Alert("Usuario não autorizado a conceder descontos!")
+        nRet:= 0  
+        M->CK_VALDESC := 0
+     Endif
+     //If nDescV > nDescMax
+     //   If !AGPE001Pass()
+     //      Alert("Desconto concedido % " + Transform(nDescV,"@E 999,999.99")+";Desconto permitido % " + Transform(nDescMax,"@E 999,999.99"))
+     //      nRet:= 0  
+     //      M->CK_VALDESC := 0
+     //   Endif    
+     //Endif 
+  Endif 
+RETURN nRet          
+
+///////////////////////
+User Function AGPE003()
+  Local RET      := TMP1->CK_VALDESC //M->CK_DESCONT 
+  Local nDescMax := GetMv("MV_DESCORC")                                           
+  Local mUsuario := ALLTRIM(Upper(SubStr(cUsuario, 7, 15))) 
+  Local cNivel1  := ALLTRIM(GetMv("MV_DESCUS1")) // Desconto gerente
+  Local cNivel2  := ALLTRIM(GetMv("MV_DESCUS2")) // Desconto diretoria    
+  If !UsrAltDesc(M->CK_DESCONT, nDescMax, mUsuario, cNivel1, cNivel2)   
+     RET := 0
+  Endif   
+Return RET     
+
+User Function AGPE004(cProduto,cTabela,nPrcVen,nQuant)
+  Local nDescMax  := GetMv("MV_DESCORC")                                           
+  Local mUsuario  := ALLTRIM(Upper(SubStr(cUsuario, 7, 15))) 
+  Local cNivel1   := ALLTRIM(GetMv("MV_DESCUS1")) // Desconto gerente
+  Local cNivel2   := ALLTRIM(GetMv("MV_DESCUS2")) // Desconto diretoria    
+
+  LOCAL nPrcTabela, nDescV:= 0,nRet:= 0
+  Local nDescMax:= GetMv("MV_DESCORC")                                           
+  Local nDesc := 0
+  
+  nDesc := Ascan(aHeader,{|x|x[2] == "CK_VALDESC"})   
+  cTabela:= If(Empty(cTabela),"001",cTabela)
+  nPrcTabela:= a415Tabela(cProduto,cTabela,nQuant)
+           
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Verifica se o desconto está acima do permitido  ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  nRet:= nPrcVen
+  If nPrcVen < nPrcTabela
+     nDescV:= Round((1-(nPrcVen / nPrcTabela))*100,2) 
+     If !UsrAltDesc(nDescV, nDescMax, mUsuario, cNivel1, cNivel2) 
+        //Alert("Usuario não autorizado a conceder descontos-2!")
+        nRet:= nPrcTabela
+     Endif
+     //If nDescV > nDescMax
+     //   If !AGPE001Pass()      
+     //      //Alert("Desconto concedido % " + Transform(nDescV,"@E 999,999.99")+";Desconto permitido % " + Transform(nDescMax,"@E 999,999.99"))
+ 	 //      nRet:= nPrcTabela
+ 	 //   Endif    
+     //Endif 
+  Endif 
+return nRet                                   
+
+User Function AGPE005(cProduto,cTabela,nPrcVen,nQuant)
+  LOCAL nPrcTabela, nDescV:= 0,nRet:= 0
+  Local nDescMax:= GetMv("MV_DESCORC")                                           
+  Local nDesc := 0                          
+  Local nDescMax  := GetMv("MV_DESCORC")                                           
+  Local mUsuario  := ALLTRIM(Upper(SubStr(cUsuario, 7, 15))) 
+  Local cNivel1   := ALLTRIM(GetMv("MV_DESCUS1")) // Desconto gerente
+  Local cNivel2   := ALLTRIM(GetMv("MV_DESCUS2")) // Desconto diretoria    
+  nDesc := Ascan(aHeader,{|x|x[2] == "CK_VALDESC"})   
+  cTabela:= If(Empty(cTabela),"001",cTabela)
+  nPrcTabela:= a415Tabela(cProduto,cTabela,nQuant)
+  nRet := 0      
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Verifica se o desconto está acima do permitido  ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  If nPrcVen < nPrcTabela
+     nDescV:= Round((1-(nPrcVen / nPrcTabela))*100,2) 
+     If !UsrAltDesc(nDescV, nDescMax, mUsuario, cNivel1, cNivel2) 
+        Alert("Desconto acima do permitido!")
+        nRet:= nDescV
+     Endif   
+     //If nDescV <= nDescMax
+     //   If !AGPE001Pass()      
+     //      //Alert("Desconto concedido % " + Transform(nDescV,"@E 999,999.99")+";Desconto permitido % " + Transform(nDescMax,"@E 999,999.99"))
+ 	 //      nRet:= nDescV
+ 	 //   Endif   
+     //Endif 
+  Endif 
+return nRet
+  
+User Function AGPE006(cProduto,cTabela,nPrcVen,nQuant)
+  Local nPrcTabela, nDescV:= 0,nRet:= 0
+  Local nDescMax  := GetMv("MV_DESCORC")                                           
+  Local mUsuario  := ALLTRIM(Upper(SubStr(cUsuario, 7, 15))) 
+  Local cNivel1   := ALLTRIM(GetMv("MV_DESCUS1")) // Desconto gerente
+  Local cNivel2   := ALLTRIM(GetMv("MV_DESCUS2")) // Desconto diretoria   
+  Local cSenhaSup := Space(6)
+  Local nAcesso   := 11 
+  Local cCaixaSup := Space(15)
+  
+  cTabela:= If(Empty(cTabela),"001",cTabela)
+  
+  nPrcTabela:= a415Tabela(cProduto,cTabela,nQuant)                     
+           
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Verifica se o desconto está acima do permitido  ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  nRet:= M->CK_VALDESC
+  
+  If nPrcVen < nPrcTabela
+     nDescV:= Round((1-(nPrcVen / nPrcTabela))*100,2) 
+     If !UsrAltDesc(nDescV, nDescMax, mUsuario, cNivel1, cNivel2) 
+        Alert("Desconto acima do permitido!")
+        nRet:= 0  
+        M->CK_DESCONT := 0
+     Endif
+  Endif 
+RETURN nRet          
+
+//////////////////////////////////////////////////////
+User Function AGPE007(cProduto,cTabela,nPrcVen,nQuant)
+  Local nPrcTabela, nDescV:= 0,nRet:= 0
+  Local nDescMax  := GetMv("MV_DESCORC")                                           
+  Local mUsuario  := ALLTRIM(Upper(SubStr(cUsuario, 7, 15))) 
+  Local cNivel1   := ALLTRIM(GetMv("MV_DESCUS1")) // Desconto gerente
+  Local cNivel2   := ALLTRIM(GetMv("MV_DESCUS2")) // Desconto diretoria    
+  Local cSenhaSup := Space(6)
+  Local nAcesso   := 11 
+  Local cCaixaSup := Space(15)
+  
+  cTabela:= If(Empty(cTabela),"001",cTabela)
+  
+  nPrcTabela:= a415Tabela(cProduto,cTabela,nQuant)                     
+           
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Verifica se o desconto está acima do permitido  ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  nRet:= nPrcVen 
+  
+  If nPrcVen < nPrcTabela
+     nDescV:= Round((1-(nPrcVen / nPrcTabela))*100,2) 
+     If !UsrAltDesc(nDescV, nDescMax, mUsuario, cNivel1, cNivel2) 
+        nRet:= nPrcTabela  
+     Endif
+  Endif 
+RETURN nRet          
+
+//////////////////////////////////////////////////////
+User Function AGPE008(cProduto,cTabela,nPrcVen,nQuant)
+  Local nPrcTabela, nDescV:= 0,nRet:= 0
+  Local nDescMax  := GetMv("MV_DESCORC")                                           
+  Local mUsuario  := ALLTRIM(Upper(SubStr(cUsuario, 7, 15))) 
+  Local cNivel1   := ALLTRIM(GetMv("MV_DESCUS1")) // Nome dos usuarios autorizado a dar desconto nivel 1
+  Local cNivel2   := ALLTRIM(GetMv("MV_DESCUS2")) // Nome dos usuarios autorizado a dar desconto nivel 2    
+  Local cSenhaSup := Space(6)
+  Local nAcesso   := 11 
+  Local cCaixaSup := Space(15)
+  
+  cTabela:= If(Empty(cTabela),"001",cTabela)
+  
+  nPrcTabela:= a415Tabela(cProduto,cTabela,nQuant)                     
+           
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Verifica se o desconto está acima do permitido  ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  nRet:= TMP1->CK_DESCONT //M->CK_VALDESC
+  
+  If nPrcVen < nPrcTabela
+     nDescV:= Round((1-(nPrcVen / nPrcTabela))*100,2) 
+     If !UsrAltDesc(nDescV, nDescMax, mUsuario, cNivel1, cNivel2) 
+        nRet:= 0  
+        M->CK_DESCONT := 0
+     Endif
+  Endif 
+RETURN nRet          
+
+Static Function UsrAltDesc(nDescV, nDescMax, mUsuario, cNivel1, cNivel2) 
+  Local lret := IIF(nDescV > nDescMax .And. mUsuario $ cNivel2, .T., IIF(nDescV <= nDescMax .And. mUsuario $ cNivel1, .T., .F.))
+Return lret     

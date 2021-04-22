@@ -1,0 +1,314 @@
+
+#INCLUDE "AvPrint.ch"
+#INCLUDE "Font.ch"
+#Include "Protheus.ch" 
+#include "rwmake.ch"
+ 
+/*                           
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³                                                                       ³±±
+±±³05/03/2008³Diego Rafael   ³Bops 98346: Atualização da impressão de     ³±±
+±±³                          ³somente Agropisco para a empresa que estiver³±±
+±±³                          ³sendo Usada no momento                      ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function ORCAGRO(cOrc)
+  Private cObs:= Space(60),cObs1:= Space(60),cObs2:= Space(60),cObs3 := Space(60)
+  Private cOrcamento := IIF(Empty(cOrc),SCJ->CJ_NUM,cOrc)
+                                                            
+  //@ 000,00 TO 200,450 DIALOG oObservacao TITLE "Observacao da Nota Fiscal"
+  //@ 010,10 SAY "Observacao: "
+  //@ 010,50 Get cObs1 SIZE 150,40
+  //@ 025,10 SAY "Continuacao: "
+  //@ 025,50 Get cObs2 SIZE 150,40
+  //@ 080,170 BMPBUTTON TYPE 1 ACTION Close(oObservacao)
+  //Activate Dialog oObservacao CENTERED
+    
+  Processa({|| RReport(),"Processando Dados"})  
+
+  //If Msgbox("Imprime Lista de Separacao ?","Lista de Separacao","YESNO")
+  //	U_ISLOJR01(cOrcamento)
+  //Endif
+    
+Return
+
+/////////////////////////
+Static FUNCTION RReport()
+
+AVPRINT oPrn NAME "Orcamentos de Vendas"
+   
+   /*
+   DEFINE FONT oFont1  NAME "Times New Roman" SIZE 0,12 Bold OF oPrn
+   DEFINE FONT oFont2  NAME "Courier New"     SIZE 0,10 Bold OF oPrn//"Times New Roman"
+   DEFINE FONT oFont2  NAME "Arial"           SIZE 0,11 Bold OF oPrn//"Times New Roman"
+   DEFINE FONT oFont3  NAME "Times New Roman" SIZE 0,16 Bold OF oPrn
+   DEFINE FONT oFont4  NAME "Comic Sans MS"   SIZE 0,20 Bold OF oPrn
+   DEFINE FONT oFont5  NAME "Comic Sans MS"   SIZE 0,22 Bold OF oPrn
+   DEFINE FONT oFontT  NAME "Arial"           SIZE 0,16 Bold OF oPrn
+   DEFINE FONT oFont1  NAME "Arial"			  SIZE 0,10 Bold OF oPrn
+   DEFINE FONT oFont2  NAME "Courier New"     SIZE 0,11 Bold OF oPrn//"Times New Roman"
+   DEFINE FONT oFont3  NAME "Arial"           SIZE 0,16 Bold OF oPrn
+   DEFINE FONT oFont4  NAME "Arial"           SIZE 0,20 Bold OF oPrn
+   DEFINE FONT oFont5  NAME "Arial"           SIZE 0,22 Bold OF oPrn
+   DEFINE FONT oFont6  NAME "Trebuchet MS"           SIZE 0,08 Bold OF oPrn
+   DEFINE FONT oFontT  NAME "Arial"           SIZE 0,16 Bold OF oPrn
+   */
+   
+   DEFINE FONT oFont1  NAME "Trebuchet MS"	  SIZE 0,10 Bold OF oPrn
+   DEFINE FONT oFont2  NAME "Trebuchet MS"    SIZE 0,11 Bold OF oPrn//"Times New Roman"
+   DEFINE FONT oFont3  NAME "Trebuchet MS"    SIZE 0,16 Bold OF oPrn
+   DEFINE FONT oFont4  NAME "Trebuchet MS"    SIZE 0,20 Bold OF oPrn
+   DEFINE FONT oFont5  NAME "Trebuchet MS"    SIZE 0,22 Bold OF oPrn
+   DEFINE FONT oFont6  NAME "Trebuchet MS"    SIZE 0,09 Bold OF oPrn
+   DEFINE FONT oFontT  NAME "Trebuchet MS"    SIZE 0,16 Bold OF oPrn
+      
+   DEFINE FONT oFontX  NAME "Trebuchet MS"     SIZE 0,09 Bold Italic Underline OF oPrn//"Times New Roman"
+   DEFINE FONT oFontY  NAME "Trebuchet MS"     SIZE 0,09 Bold OF oPrn//"Times New Roman"
+
+   oPrn:SETPORTRAIT()
+   
+   AVPAGE
+      Processa({|X| lEnd := X, RPrint() })
+   AVENDPAGE
+   
+AVENDPRINT  
+oPrn:SETPORTRAIT()
+oFont1:End()
+oFont2:End()
+oFont3:End()
+oFont4:End()                                   
+oFont5:End()
+oFontT:End()                                   
+Return .T.
+      
+/////////////////////////
+Static Function RPrint()
+  Local xCor, cReserv
+  Local nPrcVenda := 0
+  Private nPage:=1,nLine,nLinVert := 150,nColIni:=160,nColFim:=2300
+
+  nCol1:=nColIni       //Produto
+  nCol2:=nCol1+1100    //Desconto
+  nCol3:=nCol2+230     //Preço unitário
+  nCol4:=nCol3+250     //Quantidade
+  nCol5:=nCol4+180     //Total
+  nLinFim:=2800
+ 
+  nTotal    :=0
+  nDescItem :=0
+
+  DbSelectArea("SCJ")
+//  DbSetOrder(1)
+  U_MsSetOrder("SCJ","CJ_FILIAL+CJ_NUM+CJ_CLIENTE+CJ_LOJA")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+  SCJ->(DbSeek(xFilial("SCJ")+cOrcamento))
+
+  cObs1 := IIF(Empty(SCJ->CJ_YOBS1),"",SCJ->CJ_YOBS1)
+  cObS2 := IIF(Empty(SCJ->CJ_YOBS2),"",SCJ->CJ_YOBS2)
+
+//  SB1->(dbSetOrder(1))
+//  SA1->(dbSetOrder(1))
+//  SCK->(dbSetOrder(1))
+  U_MsSetOrder("SB1","B1_FILIAL+B1_COD")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+  U_MsSetOrder("SA1","A1_FILIAL+A1_COD+A1_LOJA")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+  U_MsSetOrder("SCK","CK_FILIAL+CK_NUM+CK_ITEM+CK_PRODUTO")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima  
+  SCK->(dbSeek(xFilial("SCK")+cOrcamento))
+
+  RCabec()
+
+  While !SCK->(EOF()) .and. SCK->CK_NUM = SCJ->CJ_NUM
+
+     ProcRegua(SCK->(LastRec()))
+
+     Ver_Pag()
+
+     SB1->(dbSeek(xFilial("SB1")+SCK->CK_PRODUTO))
+     nPrcVenda := SCK->CK_PRCVEN
+    
+     nValor  := Round(SCK->CK_VALOR,2)
+     xCor    := Nil
+     cReserv := oFontY
+  
+     oPrn:Say(nLine,nCol1     , PadR(Left(SB1->B1_COD,15),15)                           , cReserv,,xCor,,3)
+     oPrn:Say(nLine,nCol1+250 , PadR(Left(SB1->B1_DESC,40),40)                          , cReserv,,xCor,,3)
+     oPrn:Say(nLine,nCol1+1090-150, PadR(SB1->B1_LOCAGRO,15)                            , cReserv,,xCor,,3)
+     oPrn:Say(nLine,nCol1+1090, PadL(Transform(SCK->CK_QTDVEN,"@E 999,999"),10)         , cReserv,,xCor,,3)
+     oPrn:Say(nLine,nCol2+260 , PadL(Transform(nPrcVenda,"@E 999,999.99"),12)           , cReserv,,xCor,,3)
+     oPrn:Say(nLine,nCol3+280 , PadL(Transform(SCK->CK_VALDESC  ,"@E 999.99"),6)+"%"    , cReserv,,xCor,,3)
+     oPrn:Say(nLine,nCol5+40  , PadL(Transform(nValor   ,"@E 99,999,999.99"),15)        , cReserv,,xCor,,3)
+     oPrn:Say(nLine,nCol5+270 , PadL(Transform(Iif(!Empty(SB1->B1_PICM),SB1->B1_PICM,GETMV("MV_ICMPAD"))  ,"@E 99")+"%",8)         ,oFont6,,xCor,,3)
+     nLine+=60
+
+     nTotal += nValor
+     nDescItem += SCK->CK_VALDESC
+
+     SCK->(dbSkip())
+  
+  Enddo
+  RRoda()
+Return
+      
+////////////////////////
+Static Function RCabec()
+  Local nLarg:=300,nAlt:=200
+  Local cEmail        
+  Local nTamRua
+  nLine := 150
+
+  SA1->(dbSeek(xFilial("SA1")+SCJ->CJ_CLIENTE+SCJ->CJ_LOJA))
+  
+  SM0->(DbSelectArea("SM0"))
+  SM0->(DbGoTop())
+  While (!SM0->(EOF()))
+    if SM0->M0_CODIGO == cEmpAnt
+       If cEmpAnt == "03"
+          cEmail := "E-mail:acompressores@hotmail.com "
+          ElseIf cEmpAnt == "01"
+              cEmail := "E-mail:agropisco@agropisco.com.br - www.agropisco.com.br"
+       EndIf
+       Exit
+    End 
+    SM0->(DbSkip())
+  End
+  
+  oPrn:Box(nLine,nLinVert,nLine+650,nColFim) //- Box do cabecalho
+  
+  oPrn:SayBitmap(nLine+30,nColIni,"msmdilogo.bmp",nLarg,nAlt); nLine += 50
+  
+/*  oPrn:Say(nLine , 0510 , " AGROPISCO COMERCIO E SERVICOS DE EQUIPAMENTOS LTDA"       , oFont1,,,,3)
+  oPrn:Say(nLine , 1800 , " Orçamento" , oFont5,,,,3) ;nLine += 080  
+  oPrn:Say(nLine , 0510 , " Rua Vinca No.238 - Crespo - Cep:69073-180 Manaus-AM"      , oFont1,,,,3)
+  oPrn:Say(nLine , 1830 , SCJ->CJ_NUM  , oFont5,,,,3) ;nLine += 080
+  oPrn:Say(nLine , 0510 ," FONE:(92) 2121-4650/FAX:(92)2121-4660"                    , oFont1,,,,3); nLine += 080
+  oPrn:Say(nLine , 0510 ," E-mail:agropisco@agropisco.com.br - www.agropisco.com.br" , oFont1,,,,3); nLine += 060
+  oPrn:Line(nLine,nCol1-10,nLine,nColFim); nLine += 040*/
+  
+  nTamRua := TamToV(SM0->M0_ENDCOB,Len(SM0->M0_ENDCOB))
+    
+  oPrn:Say(nLine , 0510 , PADR(SM0->M0_NOMECOM,40) + "- CNPJ: "+Transform(SM0->M0_CGC,"@R 99.999.999/9999-99"), oFont1,,,,3)// Nome empresa / CNPJ
+   
+  oPrn:Say(nLine , 1800 , " Orçamento" , oFont5,,,,3) ;nLine += 080  
+  
+  oPrn:Say(nLine , 0510 ,  Trim(SUBSTR(SM0->M0_ENDCOB,0,nTamRua)) + "  No." + ;
+                           AllTrim(SubStr(SM0->M0_ENDCOB,nTamRua+1,Len(SM0->M0_ENDCOB))) + ;
+                           " - " + Trim(SM0->M0_BAIRCOB) + " - Cep: " + Trim(SubStr(SM0->M0_CEPCOB,0,5)) +;
+                           "-" + Trim(SubStr(SM0->M0_CEPCOB,6,8)) + " " +;
+                           Trim(SM0->M0_CIDCOB) + "-" + Trim(SM0->M0_ESTCOB) , oFont1,,,,3)
+       
+  oPrn:Say(nLine , 1830 , SCJ->CJ_NUM  , oFont5,,,,3) ;nLine += 080
+  oPrn:Say(nLine , 0510 ,"FONE:" + Trim(SM0->M0_TEL) +"/" + "FAX:"+Trim(SM0->M0_FAX), oFont1,,,,3); nLine += 080
+  oPrn:Say(nLine , 0510 , cEmail , oFont1,,,,3); nLine += 060 
+  oPrn:Line(nLine,nCol1-10,nLine,nColFim); nLine += 040
+  
+  oPrn:Say(nLine    ,nColIni ,"Cliente : "+SA1->A1_COD+" - "+SA1->A1_NOME,oFont1,,,,3)
+  oPrn:Say(nLine+50 ,nColIni ,"Endereço:  "+SA1->A1_END     ,oFont1,,,,3)
+  oPrn:Say(nLine+100,nColIni ,"Bairro  :   "+PADR(SA1->A1_BAIRRO,20)+"- "+Transform(SA1->A1_CEP,"@R 99999-999")	 ,oFont1,,,,3)
+  
+  If SA1->A1_PESSOA == "J"
+     cMask := "@R 99.999.999/9999-99"
+  Else
+     cMask := "@R 999.999.999-99"
+  EndIf     
+
+  oPrn:Say(nLine+150 ,nColIni,"Cgc/cpf :  "+Transform(SA1->A1_CGC,cMask) +"            I.E: " + SA1->A1_INSCR,oFont1,,,,3)
+  oPrn:Say(nLine+200,nColIni ,"Telefone:  "+Transform(Alltrim(SA1->A1_TEL),"@R 9999-9999"),oFont1,,,,3) ;nLine += 280
+
+  oPrn:Say(nLine , nCol1            , PadR("Codigo",60)   , oFont2,,,,3)
+  oPrn:Say(nLine , nCol1+260        , PadR("Produto",60)  , oFont2,,,,3)
+  oPrn:Say(nLine , nCol1+900+240-190, PadR("Local",10)     , oFont2,,,,3)
+  oPrn:Say(nLine , nCol1+900+240    , PadR("Qtde",10)     , oFont2,,,,3)
+  oPrn:Say(nLine , nCol2+100+120    , PadL("Preço R$",12) , oFont2,,,,3)      
+  oPrn:Say(nLine , nCol3+130+160    , PadR("Desc.",15)    , oFont2,,,,3)   
+  oPrn:Say(nLine , nCol5            , PadL("Total R$",15) , oFont2,,,,3)
+  oPrn:Say(nLine , nCol5+300        , PadR("ICM",10)      , oFont2,,,,3)
+  nLine += 080
+                          
+Return
+
+///////////////////////
+Static Function RRoda()                  
+  Local nLarg:=250, nAlt:=200
+
+  If nLine > 2100
+     cData := diaextenso(ddatabase)+","+alltrim(str(day(ddatabase)))+"/"+mesextenso(ddatabase)+"/"+alltrim(str(year(ddatabase)))+"   "+time()
+     oPrn:Say(3000,nCol1,"Data de Impressao: "+cData,oFont2,,,,3)
+     oPrn:Say(3100,nCol5,PadL("Pág. "+strzero(nPage,3),15),oFont2,,,,3)
+     nPage += 1  
+     AVNEWPAGE
+     nLine := 150
+  Endif
+
+  oPrn:Box(nLine,nLinVert,nLine+450,nColFim)
+  nLine += 40
+
+  oPrn:Say(nLine,nCol1+10,"Preços sujeitos a alteração sem aviso prévio",oFont1,,,,3)
+  oPrn:Say(nLine-20,nCol3+20,"TOTAL: ",oFontT,,,,3)   
+  oPrn:Say(nLine-20,nCol4+15+10,"R$"+Transform(nTotal,"@E 999,999,999.99"),oFontT,,,,3); nLine += 80 
+   
+  oPrn:Say(nLine,nCol1-135,PadC("",60),oFont1,,,,3) ; nLine += 90
+
+  oPrn:Line(nLine,nLinVert,nLine,nColFim); nLine += 30
+  oPrn:Say(nLine,nCol1+300,PadR("VALOR MÍNIMO PARA FATURAMENTO E ENTREGA É DE R$ 150,00",180),oFont2,,,,3); nLine += 100
+  oPrn:Say(nLine,nCol1+300,PadR("ORÇAMENTO SUJEITO À APROVAÇÃO DE CRÉDITO",180),oFont2,,,,3); nLine += 100
+
+  //SA3->(dbSetOrder(1))
+  U_MsSetOrder("SA3","A3_FILIAL+A3_COD")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima    
+  SA3->(dbSeek(xfilial("SA3")+SCJ->CJ_VEND1))
+
+  cData := alltrim(str(day(SCJ->CJ_EMISSAO)))+"/"+substr(mesextenso(SCJ->CJ_EMISSAO),1,3)+"/"+alltrim(str(year(SCJ->CJ_EMISSAO)))
+
+  oPrn:Say(nLine,nCol1,"Data: "+cData+"- Hora:"+TIME(),oFont2,,,,3); nLine += 100 
+
+  oPrn:Say(nLine,nCol1,"Forma de pagamento: " + Fn_VerPG(SCJ->CJ_CONDPAG),oFont2,,,,3); nLine += 50
+  oPrn:Say(nLine,nCol1,"Validade Proposta: " + Dtoc(SCJ->CJ_VALIDA),oFont2,,,,3); nLine += 50
+  oPrn:Say(nLine,nCol1,"Vendedor: "+SA3->A3_NOME+SPACE(10)+SA3->A3_TEL,oFont2,,,,3); nLine += 100 
+
+  //Observações//
+  oPrn:Say(nLine,nCol1,cObs,oFont2,,,,3); nLine += 50
+  oPrn:Say(nLine,nCol1,cObs1,oFont2,,,,3); nLine += 50 
+  oPrn:Say(nLine,nCol1,cObs2,oFont2,,,,3); nLine += 50 
+  oPrn:Say(nLine,nCol1,cObs3,oFont2,,,,3); nLine += 100
+
+  cData := diaextenso(ddatabase)+","+alltrim(str(day(ddatabase)))+"/"+mesextenso(ddatabase)+"/"+alltrim(str(year(ddatabase)))+"   "+time()
+  oPrn:Say(3000,nCol1,"Data de Impressao: "+cData,oFont2,,,,3)
+
+  oPrn:Say(3100,nCol5,PadL("Pág. "+strzero(nPage,3),15),oFont2,,,,3)
+
+Return
+
+/////////////////////////
+Static Function Ver_Pag()
+  If nLine >= nLinFim
+     cData := diaextenso(ddatabase)+","+alltrim(str(day(ddatabase)))+"/"+mesextenso(ddatabase)+"/"+alltrim(str(year(ddatabase)))+"   "+time()
+     oPrn:Say(3000,nCol1,"Data de Impressao: "+cData,oFont2,,,,3)
+     oPrn:Say(3100,nCol5,PadL("Pág. "+strzero(nPage,3),15),oFont2,,,,3)
+     nPage += 1 
+     AvNewPage       
+     RCabec()
+  Endif      
+Return
+
+//////////////////////////////////
+Static Function Fn_VerPg(cCondPg)
+  DbSelectArea("SE4")
+  //DbSetOrder(1)
+  U_MsSetOrder("SE4","E4_FILIAL+E4_CODIGO")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima      
+  SE4->(DbSeek(XFilial()+cCondPg,.T.))
+  cRet:= Alltrim(SE4->E4_DESCRI)  
+Return(cRet)
+
+
+Static Function TamToV(cPalavra,nTotal)
+     Local nTam := 0
+      For i := 1 To nTotal
+       If(SubStr(cPalavra,i,1) == ",") 
+        nTam:=i       
+       EndIf
+      Next
+Return nTam

@@ -1,0 +1,238 @@
+#INCLUDE "rwmake.ch"
+
+User Function AGCOMR001
+  Local cDesc1         := "Este programa tem como objetivo imprimir relatorio "
+  Local cDesc2         := "de acordo com os parametros informados pelo usuario."
+  Local cDesc3         := "Analise de Compras por Fabrica"
+  Local cPict          := ""
+  Local titulo         := "Analise de Compras - Fabricante"
+  Local nLin           := 80
+  Local Cabec1         := ""
+  Local Cabec2         := ""
+  Local imprime        := .T.
+  Private aOrd         := {} //{"Ordem 01","Ordem 02"}
+  Private lEnd         := .F.
+  Private lAbortPrint  := .F.
+  Private CbTxt        := ""
+  Private limite       := 132
+  Private tamanho      := "M"
+  Private nomeprog     := "AGCOMR01" // Coloque aqui o nome do programa para impressao no cabecalho
+  Private nTipo        := 18
+  Private aReturn      := { "Zebrado", 1, "Administracao", 2, 2, 1, "", 1}
+  Private nLastKey     := 0
+  Private cPerg        := "AGCP01"       
+  Private m_pag        := 01
+  Private cbtxt        := Space(10)
+  Private cbcont       := 00
+  Private wnrel        := "AGCOMR001" // Coloque aqui o nome do arquivo usado para impressao em disco
+  Private cString      := "SB1"
+
+  ValidPerg(cPerg)
+
+  Pergunte(cPerg,.F.)
+
+  wnrel := SetPrint(cString,NomeProg,cPerg,@titulo,cDesc1,cDesc2,cDesc3,.F.,aOrd,.F.,Tamanho,"",.F.)
+  
+  If nLastKey == 27
+     Return
+  Endif
+
+  SetDefault(aReturn,cString)
+
+  If nLastKey == 27
+     Return
+  Endif
+
+  nTipo := If(aReturn[4]==1,15,18)
+
+  RptStatus({|| RunReport(Cabec1,Cabec2,Titulo,nLin) },Titulo)
+
+Return
+
+/////////////////////////////////////////////////////
+Static Function RunReport(Cabec1,Cabec2,Titulo,nLin)
+                                                      
+  Local nTotalGeral:= 0
+
+  //Titulo += Posicione("SA2", 1, xFilial("SA2")+MV_PAR03, "A2_NREDUZ")
+  
+  Cabec1 := "Codigo          Descricao                      Contagem  Fabricante DU Compra  QU Compra VL Ult.Cmp  DP Compra QP Compra Local"
+//           xxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx [       ] xxxxxxxxxx 99/99/9999 99999.99  999,999.99 99/99/9999 99999.99  xxxxxxxxxxxxxxx     
+//           0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890234567890234567890234567890123456789012345678901234567890123 
+//           0         1         2         3         4         5         6         7         8         9        10      11       12        13        14         15
+  TabTmp()
+  
+  SetRegua(RecCount())
+  
+  While !TMP->(EOF())
+     
+     If lAbortPrint
+        @nLin,00 PSAY "*** CANCELADO PELO OPERADOR ***"
+        Exit
+     Endif
+
+     If nLin > 55
+        Cabec(Titulo,Cabec1,Cabec2,NomeProg,Tamanho,nTipo)
+        nLin := 8
+     Endif
+
+   	 //旼컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+	 //� Inicio da impressao do relatorio    �
+	 //읕컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴켸
+     aCompra:= UltCompra(TMP->B1_COD) 
+     
+     @nLin, 000  PSAY TMP->B1_COD                
+     @nLin, 016  PSAY Substr(TMP->B1_DESC,1,30)               
+     @nLin, 047  PSAY "[       ]"
+     @nLin, 057  PSAY Substr(TMP->A2_NREDUZ,1,10)
+     @nLin, 068  PSAY aCompra[1,1] 
+     @nLin, 079  PSAY aCompra[1,2] Picture "@E 99999.99"
+     @nLin, 089  PSAY aCompra[1,3] Picture "@E 999,999.99"     
+     @nLin, 102  PSAY aCompra[2,1]          
+     @nLin, 114  PSAY aCompra[2,2] Picture "@E 99999.99"
+     @nLin, 124  PSAY Left(TMP->B1_LOCAGRO , 15)     
+     TMP->(DbSkip())
+     nLin += 1
+  Enddo          
+      
+  TMP->(dbCloseArea())
+
+  SET DEVICE TO SCREEN
+
+  If aReturn[5]==1
+     dbCommitAll()
+     SET PRINTER TO
+     OurSpool(wnrel)
+  Endif
+
+  MS_FLUSH()
+
+Return
+
+/////////////////////////
+Static Function TabTmp()
+  Local cQry := "", cFiltro:="", lCond := .t., nPosAt, cPesq, c_Cond
+
+  cQry := " SELECT B1_COD, B1_DESC, B1_GRUPO, B1_LOCAGRO, A2_NREDUZ"
+  cQry += " FROM " 
+  cQry += RetSQLName("SB1")+" SB1, "
+  cQry += RetSQLName("SA2")+" SA2  "
+  cQry += " WHERE SB1.D_E_L_E_T_ <> '*' AND SA2.D_E_L_E_T_ <> '*'"
+  cQry += " AND B1_TIPO = 'ME'"
+  cQry += " AND B1_PROC = A2_COD AND B1_LOJPROC = A2_LOJA"
+  cQry += " AND B1_PROC BETWEEN '"+MV_PAR01+"' AND '"+MV_PAR02+"' "   
+  cQry += " AND B1_COD BETWEEN '"+MV_PAR03+"' AND '"+MV_PAR04+"' "  
+    
+  If !Empty(MV_PAR05)             
+     cQry += " AND (" 
+     cFiltro := Alltrim(MV_PAR05)
+     While lCond
+        nPosAt:= At("%", cFiltro) 
+        If nPosAt > 1 
+           cPesq:= '%'+Substring(cFiltro, 1, nPosAt)
+           cFiltro := StrTran(cFiltro,Substring(cFiltro, 1, nPosAt), "")
+	    Else
+	       cPesq:= "%"+Alltrim(cFiltro)+"%" 
+	       lCond:= .f. 
+	    Endif
+   	    cQry+= " B1_DESC LIKE '" + ALLTRIM(cPesq) + Iif(lCond,"' OR ","')") 
+     Enddo
+  Endif
+  cQry += " ORDER BY B1_COD "                                                                  
+
+  dbUseArea(.T.,"TOPCONN",TcGenQry(,,ChangeQuery(cQry)),"TMP",.T.,.T.)
+  
+  dbSelectArea("TMP")  
+
+Return
+
+////////////////////////////////
+Static Function UltCompra(cCod)
+  
+  Local cAlias:= Alias()
+  Local cQry:="", cDtUltCmp:="",i:=0, aCompra:= {} 
+  
+  cQry := "SELECT TOP 2 D1_COD, D1_QUANT, D1_VUNIT, F1_DTDIGIT "
+  cQry += "FROM "
+  cQry += RetSQLName("SF1")+" SF1, "
+  cQry += RetSQLName("SD1")+" SD1, "
+  cQry += RetSQLName("SB1")+" SB1, "
+  cQry += RetSQLName("SA2")+" SA2, "
+  cQry += RetSQLName("SF4")+" SF4  "            
+  cQry += "WHERE SF1.D_E_L_E_T_ <> '*' "
+  cQry += "AND SD1.D_E_L_E_T_ <> '*' "  
+  cQry += "AND SB1.D_E_L_E_T_ <> '*' "  
+  cQry += "AND SA2.D_E_L_E_T_ <> '*' "  
+  cQry += "AND SF4.D_E_L_E_T_ <> '*' "  
+  cQry += "AND SF1.F1_FILIAL = '"+xFilial("SF1")+"' " 
+  cQry += "AND SD1.D1_FILIAL = '"+xFilial("SD1")+"' "
+  cQry += "AND SB1.B1_FILIAL = '"+xFilial("SB1")+"' "
+  cQry += "AND SA2.A2_FILIAL = '"+xFilial("SA2")+"' "
+  cQry += "AND SF4.F4_FILIAL = '"+xFilial("SF4")+"' "
+  cQry += "AND SD1.D1_DOC = SF1.F1_DOC "
+  cQry += "AND SD1.D1_SERIE = SF1.F1_SERIE " 
+  cQry += "AND SD1.D1_FORNECE = SF1.F1_FORNECE " 
+  cQry += "AND SD1.D1_LOJA = SF1.F1_LOJA "    
+  cQry += "AND SD1.D1_QUANT > 0 "    
+  cQry += "AND SD1.D1_TIPO NOT IN ('D','B') " 
+  cQry += "AND NOT (SD1.D1_TIPODOC >= '50' ) " 
+  cQry += "AND SB1.B1_COD = SD1.D1_COD "
+  cQry += "AND SB1.B1_MSBLQL <> '1' "
+  cQry += "AND SF4.F4_CODIGO = SD1.D1_TES " 
+  cQry += "AND SA2.A2_COD = SD1.D1_FORNECE " 
+  cQry += "AND SA2.A2_LOJA = SD1.D1_LOJA " 
+  cQry += "AND D1_COD = '"+cCod+"' "
+  cQry += "ORDER BY F1_DTDIGIT DESC" 
+
+  dbUseArea( .T., "TOPCONN", TcGenQry(,,CHANGEQUERY(cQry)), "TRB", .T., .F. )  
+  
+  TcSetField("TRB" , "F1_DTDIGIT", "D", 8, 0)  // Formata para tipo data
+                      
+  TRB->(dbGotop())                    
+               
+  aCompra:= {}
+  
+  AADD(aCompra,{"__/__/____", 0.00, 0.00 })
+  AADD(aCompra,{"__/__/____", 0.00, 0.00 })
+ 
+  i:= 0
+  While !TRB->(Eof())
+     i++
+     aCompra[i,1] := TRB->F1_DTDIGIT
+     aCompra[i,2] := TRB->D1_QUANT
+     aCompra[i,3] := TRB->D1_VUNIT
+     TRB->(Dbskip())
+  Enddo
+  TRB->(dbCloseArea())
+
+  dbselectArea(cAlias)
+
+Return aCompra
+
+/////////////////////////////////
+Static Function ValidPerg(cPerg)
+  _sAlias := Alias()  
+  cPerg   := Padr(cPerg,10)
+  DbSelectArea("SX1")
+  DbSetOrder(1)
+  aRegs :={}
+
+  aAdd(aRegs,{cPerg, "01", "Da Fabrica    ?", "" , "", "mv_ch1", "C" ,06, 0 , 0 ,"G", "" , "MV_PAR01", "",  "", "", "","","","","","","","","","","","","","","","","","","","","","SA2",""})
+  aAdd(aRegs,{cPerg, "02", "Ate a Fabrica ?", "" , "", "mv_ch2", "C" ,06, 0 , 0 ,"G", "" , "MV_PAR02", "",  "", "", "","","","","","","","","","","","","","","","","","","","","","SA2",""})
+  aAdd(aRegs,{cPerg, "03", "Do Produto    ?", "" , "", "mv_ch3", "C" ,15, 0 , 0 ,"G", "" , "MV_PAR03", "",  "", "", "","","","","","","","","","","","","","","","","","","","","","SB1",""})
+  aAdd(aRegs,{cPerg, "04", "Ate o Produto ?", "" , "", "mv_ch4", "C" ,15, 0 , 0 ,"G", "" , "MV_PAR04", "",  "", "", "","","","","","","","","","","","","","","","","","","","","","SB1",""})
+  aAdd(aRegs,{cPerg, "05", "Selecao       ?", "" , "", "mv_ch5", "C" ,60, 0 , 0 ,"G", "" , "MV_PAR05", "",  "", "", "","","","","","","","","","","","","","","","","","","","","","",""})
+
+  For i:=1 to Len(aRegs)
+     If !DbSeek(cPerg+aRegs[i,2])
+	     RecLock("SX1",.T.)
+		  For j:=1 to FCount()
+		     If j <= Len(aRegs[i])
+			     FieldPut(j,aRegs[i,j])
+			  Endif
+		  Next
+		  MsUnlock()
+	  Endif
+  Next
+  dbSelectArea(_sAlias)           
+Return

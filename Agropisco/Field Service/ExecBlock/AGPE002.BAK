@@ -1,0 +1,58 @@
+#include "rwmake.ch"
+
+//
+// ExecBlock para validar o desconto maximo permitido (Parametro MV_DESCORC)
+// Gatilho: AB5_PRCLIS Seq:001
+//
+
+USER Function AGPE002(nPrcVen,cProduto,cTabela,nQuant,cCodCli,cLojCli)
+  
+  Local nPrcTabela, nDescV:= 0,nRet:= 0
+  Local nDescMax:= GetMv("MV_DESCORC")                                           
+  
+  cTabela:= If(Empty(cTabela),"001",cTabela)
+  
+  nPrcTabela:= AT400Tab(cProduto,cTabela,nQuant,cCodCli,cLojCli,1)           
+ 
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Verifica se o desconto está acima do permitido  ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+  nRet:= nPrcVen  
+  If nPrcVen < nPrcTabela
+     nDescV:= Round((1-(nPrcVen / nPrcTabela))*100,2) 
+     If nDescV > nDescMax
+        nRet:= nPrcTabela     
+        Alert("Desconto concedido % " + Transform(nDescV,"@E 999,999.99")+";Desconto permitido % " + Transform(nDescMax,"@E 999,999.99"))
+     Endif 
+  Endif      
+RETURN nRet
+
+/*_______________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------+------------+-------+----------------------+------+------------+¦¦
+¦¦¦ Rotina    ¦ SenhaID    ¦ Autor ¦ Ronilton O. Barros   ¦ Data ¦ 28/09/2006 ¦¦¦
+¦¦+-----------+------------+-------+----------------------+------+------------+¦¦
+¦¦¦ Descriçäo ¦ Efetua leitura do codigo de acesso da solicitação/Atendimento ¦¦¦
+¦¦+-----------+---------------------------------------------------------------+¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯*/
+Static Function SenhaID()
+   Local oPsw
+   Local nOpc    := 0
+   Local cPswFol := Space(06)
+   Local oFont1  := TFont():New("Courier New",,-14,.T.,.T.)
+
+   DEFINE MSDIALOG oPsw TITLE "Identificador" From 8,70 To 13,90 OF oMainWnd
+
+   @ 05,005 SAY "Codigo" PIXEL OF oPsw
+   @ 05,035 GET cPswFol PASSWORD SIZE 30,10 PIXEL OF oPsw FONT oFont1
+      
+   @ 20,010 BUTTON oBut1 PROMPT "&Ok" SIZE 30,12 OF oPsw PIXEL;
+                   Action IIF(cPswFol=="MASTER",(nOpc:=1,oPsw:End()),;
+                          (Alert("Codigo Senha Invalida !"),nOpc:=0))
+   @ 20,040 BUTTON oBut2 PROMPT "&Cancela" SIZE 30,12 OF oPsw PIXEL;
+                   Action (nOpc:=0,oPsw:End())
+
+   ACTIVATE MSDIALOG oPsw CENTERED
+
+Return(nOpc == 1)

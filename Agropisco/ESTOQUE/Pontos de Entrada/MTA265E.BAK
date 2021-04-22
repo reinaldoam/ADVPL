@@ -1,0 +1,18 @@
+#INCLUDE "Protheus.ch"
+/*_______________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------+------------+-------+----------------------+------+------------+¦¦
+¦¦¦ Programa  ¦ MTA265E    ¦ Autor ¦ Reinaldo Magalhaes   ¦ Data ¦ 21/05/2007 ¦¦¦
+¦¦+-----------+------------+-------+----------------------+------+------------+¦¦
+¦¦¦ Descriçäo ¦ Após a baixa do saldo no SBF (Saldos por endereço)baseado no   ¦¦
+¦¦¦           ¦ movimento.                                                     ¦¦
+¦¦+-----------+---------------------------------------------------------------+¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯*/
+User Function MTA265E
+//ExecBlock:     	MTA265E
+//Ponto:             	Após a baixa do saldo no SBF (Saldos por endereço)baseado no movimento.
+//*Parâmetros Enviados: "i"
+//Observações:	    Utilizado para a gravação de algum arquivo ou campo.
+//Retorno :       	    Nenhum.
+Return

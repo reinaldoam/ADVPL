@@ -1,0 +1,67 @@
+#include "rwmake.ch"
+
+//
+// P.E para avaliar o grau de risco do cliente na gravacao do orcamento de vendas.
+//
+
+USER Function A415TDOK
+  Local lRet    := .T.     
+  Local n_Total := 0
+  Local cCondPg := GetMv("MV_CONDPAD")
+  Local nRisco, nDias, n_Financ, n_Compra, cCodCli, cLojCli
+  
+  n_Financ := 0.00
+  n_Compra := 0.00                       
+  
+  cCodCli := SA1->A1_COD
+  cLojCli := SA1->A1_LOJA 
+  
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Permitir apenas R$,CC,CD,CH para consumidor final  ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ 
+  If cCodCli+cLojCli == GetMV("MV_AGRXCLI") //- Cliente consumidor final
+     If !(ALLTRIM(SE4->E4_FORMA) $ "R$#CC#CD#CH")
+        Alert("Apenas sao permitidas vendas a vista para cliente padrao !!!")
+        lRet:= .F. 
+     Endif 
+  Endif    
+
+  //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  //³ Avaliando grau de risco do cliente      ³
+  //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ 
+  If !(ALLTRIM(SE4->E4_FORMA) $ "R$#CC#CD#CH")   
+     If SA1->A1_RISCO == "E"   
+        Alert("Cliente bloqueado por risco. Somente pagamento em dinheiro !!!") 
+        lRet:= .F. 
+     ElseIf SA1->A1_RISCO $ "BCD"  
+        //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+        //³Verificando grau de risco do cliente ³
+        //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+        If SA1->A1_RISCO == "B"
+           nRisco:= GetMV("MV_RISCOB")
+        ElseIf SA1->A1_RISCO == "C" 
+          nRisco:= GetMV("MV_RISCOC")
+        Else                           
+          nRisco:= GetMV("MV_RISCOD")
+        Endif                            
+        //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  	    //³Avalia o grau de risco do cliente de acordo com o parâmetro MV_RISCO ³
+	    //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ 
+        lRisco := U_VerRisco(nRisco, cCodCli, cLojCli)
+        If lRisco 
+           Alert("Cliente bloqueado por risco !!!")   
+           lRet:= .F.
+        Endif
+ 	    If lRet
+	       //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	       //³Verifica a existencia de titulos em aberto ³
+	       //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ 
+	       n_Financ := U_ValFinanc(cCodCli, cLojCli) 
+           If n_Financ > SA1->A1_LC     
+              ALERT("Limite de credito disponivel inferior ao valor da compra !!!")
+              lRet:= .F.   
+           Endif                                    
+        Endif
+     Endif
+  Endif      
+RETURN lRet    

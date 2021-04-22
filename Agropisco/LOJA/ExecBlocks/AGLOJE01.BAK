@@ -1,0 +1,108 @@
+#include "PROTHEUS.ch"
+#include "rwmake.ch"
+
+USER Function AGLOJE01(cCodCli,cLojCli)
+  
+  Local cRet:= "2",cCli,cLoj,nVencido,nAvencer,nNCC
+    
+  Local bOk     := {|| nOpc:=0 , oDlg1:End()}
+  Local bCancel := {|| nOpc:=0 , oDlg1:End()}
+
+  Private oDlg1:= Nil
+
+  Private nLimite := SA1->A1_LC         
+  Private nCompra := SA1->A1_MCOMPRA 
+  Private nAtraso := SA1->A1_MATR  
+  Private cNome   := SA1->A1_NOME
+  Private dPricom := SA1->A1_PRICOM
+  Private dUltcom := SA1->A1_ULTCOM
+  
+  cCond    := UltVenda(cCodCli,cLojCli)
+  nVencido := SomaTitulos(cCodCli,cLojCli,"V")
+  nAvencer := SomaTitulos(cCodCli,cLojCli,"A")
+  
+  //nNCC     := SomaTitulos(cCodCli,cLojCli,"N")
+  //nDisponivel := nLimite - nVencido - nAvencer + nNCC  
+   
+  DEFINE MSDIALOG oDlg1 TITLE "Posição Cliente" From 10,40 To 30,90 //OF oMainWnd
+                                                      
+  @ 015, 010 SAY "Cliente           :" SIZE 70,7 PIXEL OF oDlg1
+  @ 030, 010 SAY "Titulos Vencidos  :" SIZE 70,7 PIXEL OF oDlg1
+  @ 045, 010 SAY "Titulos a Vencer  :" SIZE 70,7 PIXEL OF oDlg1
+  @ 060, 010 SAY "Primeira Compra   :" SIZE 70,7 PIXEL OF oDlg1
+  @ 075, 010 SAY "Ultima Compra     :" SIZE 70,7 PIXEL OF oDlg1
+  @ 090, 010 SAY "Maior Compra      :" SIZE 70,7 PIXEL OF oDlg1
+  @ 105, 010 SAY "Maior Atraso      :" SIZE 70,7 PIXEL OF oDlg1
+  @ 120, 010 SAY "Form.Pag.Ult.Compr:" SIZE 70,7 PIXEL OF oDlg1                                      
+                                                                                                         
+  @ 015, 060 MSGET oCliente    Var cNome       PICTURE "@!"             SIZE 100,7 PIXEL OF oDlg1 WHEN .F.
+  @ 030, 060 MSGET oVencido    Var nVencido    PICTURE "@E 999,999.99"  SIZE 60,7 PIXEL OF oDlg1 WHEN .F.
+  @ 045, 060 MSGET oVencer     Var nAvencer    PICTURE "@E 999,999.99"  SIZE 60,7 PIXEL OF oDlg1 WHEN .F.
+  @ 060, 060 MSGET oPricom     Var dPricom                              SIZE 60,7 PIXEL OF oDlg1 WHEN .F. 
+  @ 075, 060 MSGET oUltcom     Var dUltcom								SIZE 60,7 PIXEL OF oDlg1 WHEN .F.
+  @ 090, 060 MSGET oCompra     Var nCompra     PICTURE "@E 999,999.99"  SIZE 60,7 PIXEL OF oDlg1 WHEN .F.
+  @ 105, 060 MSGET oAtraso     Var nAtraso     PICTURE "999999"         SIZE 60,7 PIXEL OF oDlg1 WHEN .F.
+  @ 120, 060 MSGET oCond       Var cCond       PICTURE "@!"             SIZE 80,7 PIXEL OF oDlg1 WHEN .F.
+
+  ACTIVATE MSDIALOG oDlg1 ON INIT EnchoiceBar(oDlg1,bOk,bCancel)
+
+Return cRet
+
+//////////////////////////////////////////////////
+Static Function SomaTitulos(cCodCli,cLojCli,cTipo) 
+  Local cQry, nValorFin 
+  cQry := "SELECT SUM(E1_SALDO)E1_SALDO "
+  cQry += "FROM "+RetSQLName("SE1")+" A "
+  cQry += "WHERE A.D_E_L_E_T_ <> '*' "
+  cQry += "AND E1_FILIAL = '"+xFilial("SE1")+"' "
+  cQry += "AND E1_CLIENTE = '"+cCodCli+"' "
+  cQry += "AND E1_LOJA = '"+cLojCli+"' "      
+  cQry += "AND E1_SALDO > 0 "          
+
+  If cTipo = 'V' // Vencido
+     cQry += "AND E1_VENCREA < '"+Dtos(dDataBase)+"'" 
+     cQry += "AND E1_TIPO NOT IN ('RA ','NCC') "
+  ElseIf cTipo = 'A' // a vencer
+     cQry += "AND E1_VENCREA >= '"+Dtos(dDataBase)+"'"
+     cQry += "AND E1_TIPO NOT IN ('RA ','NCC') "
+  Else               // Credito
+     cQry += "AND E1_TIPO IN ('RA ','NCC') "
+  Endif               
+
+  dbUseArea(.T.,"TOPCONN",TcGenQry(,,ChangeQuery(cQry)),"TRAB",.T.,.T.)
+  dbSelectArea("TRAB")
+                          
+  TRAB->(dbGotop())
+  
+  nValorFin:= TRAB->E1_SALDO
+  
+  TRAB->(dbCloseArea())
+
+Return nValorFin   
+
+//////////////////////////////////////////
+Static Function UltVenda(cCliente, cLoja)
+  Local cQuery:= "" 
+  Local cCond:= ""
+  
+  cQuery := "SELECT F2_COND "
+  cQuery += "FROM "+RetSQLName("SF2")+" A, "
+  cQuery += "( SELECT MAX(D2_EMISSAO)D2_EMISSAO " 
+  cQuery += "FROM "+RetSQLName("SD2")+" WHERE D_E_L_E_T_<>'*' "
+  cQuery += "AND D2_CLIENTE='"+cCliente+"' " 
+  cQuery += "AND D2_LOJA='"+cLoja+"' "
+  cQuery += ")B "
+  cQuery += "WHERE A.D_E_L_E_T_<>'*' "
+  cQuery += "AND F2_EMISSAO = B.D2_EMISSAO "
+  cQuery += "AND F2_CLIENTE='"+cCliente+"' "
+  cQuery += "AND F2_LOJA='"+cLoja+"' "
+  cQuery += "ORDER BY R_E_C_N_O_ DESC "
+ 
+  dbUseArea( .T., "TOPCONN", TcGenQry(,,CHANGEQUERY(cQuery)), "TMP", .T., .F. )
+  
+  TMP->(Dbgotop())                                                  
+  
+  cCond:= TMP->F2_COND+"-"+Posicione("SE4",1,xFilial("SE4")+TMP->F2_COND,"E4_DESCRI")
+                                            
+  TMP->(dbCloseArea())
+Return cCond

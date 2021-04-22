@@ -1,0 +1,126 @@
+#include "Protheus.ch"
+#include "Rwmake.ch"
+
+/*
+   Objetivo.....: 
+   Ponto de Entrada para Consulta de saldos de produtos na Tela de Venda Assistida.
+*/
+
+USER FUNCTION LjKeyCTRLI
+  Local n_Ord    := SB1->(IndexOrd())
+  Local cAlias   := Alias()
+  Local nOrd     := dbSetOrder()
+  Local nReg     := Recno()
+  Local lRet     := .f.
+  Local aStru    := {}
+  Local aCampos  := {}
+    
+  Local nPosProd := aPosCpo[Ascan(aPosCpo,{|x| Alltrim(Upper(x[1])) == "LR_PRODUTO"})][2] // Posicao da codigo do produto
+  Local nPosLocal:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_LOCAL"})			  // Posicao do local (armazem)
+  Local cProduto := ""							                                          // Cod. do produto
+	
+  Local oDlgSaldo,oFont3,bOk,bCancel
+  Local c_Cod,c_Desc,cFile
+	
+  If !Empty(aCols[n][nPosProd]) .AND. Len(aColsDet) >= n
+     cProduto := aCols[n][nPosProd]
+	   cLocal 	:= aColsDet[n][nPosLocal]
+	
+   	   DbSelectArea( "SB1" )
+	   DbSeek( xFilial() + cProduto )
+	
+	   DbSelectArea( "SB2" )
+	   DbSeek( xFilial() + cProduto + cLocal )
+	   
+	   aStru:= { {"WK_LOCAL", "C",  2,0}, {"WK_ARMAZEM", "C", 15,0}, {"WK_QATU"  , "N", 12,2} }
+	   aCampos:= { {"WK_LOCAL",, "Cod."}, {"WK_ARMAZEM",, "Armazem"} ,{"WK_QATU"  ,, "Saldo"} }
+	
+	   cFile:= CriaTrab(aStru,.t.)
+	   dbUseArea(.t.,,cFile,"wSaldo",.F.,.F.)
+	
+	   c_Cod:= Alltrim(cProduto)
+	   c_Desc := SB1->B1_DESC
+	                                         
+	   cQry := "SELECT B2_LOCAL,SUM(B2_QATU)B2_QATU,SUM(B2_RESERVA)B2_RESERVA,SUM(B2_QPEDVEN)B2_QPEDVEN,SUM(B2_QEMP)B2_QEMP  "
+	   cQry += "FROM "+RetSqlName("SB2")+" SB2 "
+	   cQry += "WHERE SB2.D_E_L_E_T_ <> '*' "
+	   cQry += "AND B2_FILIAL = '"+xFilial("SB2")+"' "
+   	   cQry += "AND B2_COD = '"+c_Cod+"' "
+	   cQry += "GROUP BY B2_LOCAL "
+
+	   dbUseArea(.T.,"TOPCONN",TcGenQry(,,ChangeQuery(cQry)),"SB2T",.T.,.T.)
+	   dbSelectArea("SB2T")		
+    
+       If SB2T->(EOF()) .OR. SB2T->(BOF())
+          wSaldo->(dbAppend())
+		  wSaldo->WK_LOCAL:= "00"
+		  wSaldo->WK_ARMAZEM:= Space(15)
+		  wSaldo->WK_QATU  := 0
+       Endif
+	   
+	   While !SB2T->(EOF())
+	      wSaldo->(dbAppend())
+		  wSaldo->WK_LOCAL   := SB2T->B2_LOCAL
+		  wSaldo->WK_ARMAZEM := Posicione("NNR",1,xFilial("NNR")+SB2T->B2_LOCAL,"NNR_DESCRI")
+		  wSaldo->WK_QATU    := SB2T->B2_QATU-(SB2T->B2_QPEDVEN+SB2T->B2_QEMP+SB2T->B2_RESERVA) //SB2T->B2_QATU - SB2T->B2_RESERVA
+		  SB2T->(Dbskip())
+	   Enddo
+	   SB2T->(dbCloseArea())
+	
+	   dbSelectArea("wSaldo")
+	   wSaldo->(Dbgotop())
+	
+	   Define Font oFnt3 Name "Ms Sans Serif" Bold
+	   Define msdialog oDlgSaldo Title "Consulta de saldos" From 96,5 to 400,400 Pixel
+	
+	   @10,5 to 50,180 Of oDlgSaldo Pixel
+	
+	   @15, 15 Say "Codigo:"  Size 35,8 Of oDlgSaldo Pixel Font oFnt3
+	   @15, 50 Get c_Cod Picture "@!" Size 35,8 Pixel of oDlgSaldo when .F.
+	
+	   @25, 15 Say "Descricao:"  Size 35,8 Of oDlgSaldo Pixel Font oFnt3
+	   @25, 50 Get c_Desc Picture "@!" Size 100,8 Pixel of oDlgSaldo when .F.
+	
+	   oMark:= MsSelect():New("wSaldo",,,aCampos,.F.,,{65,1,(oDlgSaldo:nHeight-30)/2,(oDlgSaldo:nClientWidth-4)/2})
+	
+	   bOk := {||lRet:= .t.,oDlgSaldo:End()}
+	   bCancel := {||oDlgSaldo:End()}
+	
+	   Activate msdialog oDlgSaldo On Init EnchoiceBar(oDlgSaldo,bOk,bCancel) Centered
+	
+	   dbSelectArea("wSaldo")
+	   dbCloseArea()
+	   Ferase(cFile+GetDBExtension())
+	Endif
+	
+	SB1->(DbSetOrder(n_Ord))
+	
+	dbSelectArea(cAlias)
+	dbSetOrder(nOrd)
+	dbGoTo(nReg)
+	
+Return
+
+//////////////////////////
+User Function Saldo(c_Cod)
+  Local aArea := GetArea()  // Grava a area atual
+  Local cQry:="" 
+  Local nSaldo:=0
+  
+  cQry := "SELECT SUM(B2_QATU)B2_QATU,SUM(B2_QPEDVEN)B2_QPEDVEN,SUM(B2_QEMP)B2_QEMP,SUM(B2_RESERVA)B2_RESERVA "
+  cQry += "FROM "+RetSqlName("SB2")+" SB2 "
+  cQry += "WHERE SB2.D_E_L_E_T_ <> '*' "
+  cQry += "AND B2_FILIAL = '"+xFilial("SB2")+"' "
+  cQry += "AND B2_COD = '"+c_Cod+"' "
+  //cQry += "GROUP BY B2_COD "
+  //SB2->B2_QATU-(SB2->B2_QPEDVEN+SB2->B2_QEMP+SB2->B2_RESERVA
+  
+  dbUseArea(.T.,"TOPCONN",TcGenQry(,,ChangeQuery(cQry)),"SB2T",.T.,.T.)
+  dbSelectArea("SB2T")		
+    
+  If !SB2T->(EOF())
+     nSaldo:= SB2T->B2_QATU-(SB2T->B2_QPEDVEN+SB2T->B2_QEMP+SB2T->B2_RESERVA)
+  Endif
+  SB2T->(DbCloseArea())
+  RestArea( aArea ) // Restaura a area atual
+Return nSaldo

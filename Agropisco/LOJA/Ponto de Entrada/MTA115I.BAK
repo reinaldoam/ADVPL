@@ -1,0 +1,7 @@
+#INCLUDE "rwmake.ch"
+
+User Function MTA115I()
+
+  MsgBox("MTA115I","Atencao")
+
+Return

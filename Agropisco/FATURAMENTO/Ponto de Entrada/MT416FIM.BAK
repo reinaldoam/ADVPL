@@ -1,0 +1,17 @@
+//ExecBlock: 	MT416FIM 
+//Ponto:	Após a Confirmação do Orçamento de Venda.	 
+//Retorno Esperado:      Nenhum. 
+
+USER FUNCTION MT416FIM
+Local nInd := MsSetOrder("SA3","A3_FILIAL+A3_COD")     
+
+   SC5->C5_COMIS2:= Posicione("SA3",nInd,xFilial("SA3")+SCJ->CJ_VEND2,"A3_COMIS2")
+   If SC5->C5_COMIS2 = 0
+      SC5->C5_COMIS1:= Posicione("SA3",nInd,xFilial("SA3")+SCJ->CJ_VEND1,"A3_COMIS")
+   Else 
+      SC5->C5_COMIS1:= Posicione("SA3",nInd,xFilial("SA3")+SCJ->CJ_VEND1,"A3_COMIS2")
+   EndIF
+
+   SC5->C5_OBS1:= SCJ->CJ_YOBS1
+   SC5->C5_OBS2:= SCJ->CJ_YOBS2
+Return 

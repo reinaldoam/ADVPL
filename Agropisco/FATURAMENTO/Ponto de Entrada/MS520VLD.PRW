@@ -1,0 +1,31 @@
+#include "rwmake.ch"
+
+//Ponto: Antes da chamada da função de exclusão da Nota Fiscal (SF2)
+//Retorno Esperado: .T. ou .F. Sendo que .T. continua o processo de exclusão e .F. aborta.
+
+USER FUNCTION MS520VLD
+Local cArea  := Alias()
+Local nOrdSE1:= SE1->(IndexOrd())
+Local cFilSE1:= xFilial("SE1")
+Local cBusca := SF2->(F2_CLIENTE+F2_LOJA+F2_SERIE+F2_DOC)
+
+//- Contas a receber
+DbSelectArea("SE1")
+DbSetOrder(2) //- E1_FILIAL+E1_CLIENTE+E1_LOJA+E1_PREFIXO+E1_NUM
+If DbSeek(cFilSE1+cBusca)
+	While !SE1->(Eof()) .And. SE1->(E1_FILIAL+E1_CLIENTE+E1_LOJA+E1_PREFIXO+E1_NUM) == cFilSE1+cBusca
+	    If SE1->E1_SALDO = SE1->E1_VALOR
+   		   Reclock("SE1",.F.)
+		   DbDelete()
+		   MsUnlock()
+		Endif   
+		dbSkip()
+	Enddo
+	
+EndIf
+
+SE1->(DbSetOrder(nOrdSE1))
+
+DbSelectArea(cArea)   
+
+RETURN .T.

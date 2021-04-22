@@ -1,0 +1,195 @@
+#include "rwmake.ch"
+#include "protheus.ch"
+#define DMPAPER_A4 9
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณAGFATR08  บ Autor ณ REINALDO MAGALHAES บ Data ณ  25/01/17   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ Listagem de produtos movimentados nos ultimos 06 meses     บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP6 IDE                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+
+User Function AGFATR08()
+  Local oReport
+  oReport := reportDef()
+  oReport:printDialog()
+Return
+ 
+////////////////////////////////     
+Static Function ReportDef(cPerg)
+  Local cPerg := PadR('AGFATR08',10)
+  Local aOrdem := {}
+  Local oReport
+  Local oSection1
+  Local oSection2                      
+  Local cNome:= "AGFATR08"
+  Local cTitulo := 'Produtos movimentados nos 06 Ultimos Meses'
+     
+  //ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+  //ณCriacao do componente de impressao                                      ณ
+  //ณ                                                                        ณ
+  //ณTReport():New                                                           ณ
+  //ณExpC1 : Nome do relatorio                                               ณ
+  //ณExpC2 : Titulo                                                          ณ
+  //ณExpC3 : Pergunte                                                        ณ
+  //ณExpB4 : Bloco de codigo que sera executado na confirmacao da impressao  ณ
+  //ณExpC5 : Descricao                                                       ณ
+  //ณ                                                                        ณ
+  //ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู  
+  oReport := TReport():New("AGFATR08",cTitulo,cPerg, {|oReport| ReportPrint(oReport)},"Este relatorio ira imprimir a relacao de produtos.")
+
+  oReport:SetPortrait()
+  oReport:SetTotalInLine(.F.)
+  oReport:ShowHeader()
+     
+  //ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+  //ณ Ajusta Grupo de Perguntas                                    ณ
+  //ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+  AjustaSX1(cPerg)
+  Pergunte(cPerg,.F.)
+  
+  oSection1 := TRSection():New(oReport,"Fornecedor",{"QRY"})
+  oSection1:SetTotalInLine(.F.)
+     
+  TRCell():New(oSection1, "A2_NREDUZ" , "QRY", 'FORNECEDOR', PesqPict('SA2',"A2_NREDUZ") ,TamSX3("A2_NREDUZ")[1]+1,/*lPixel*/,/*{|| code-block de impressao }*/)
+  TRCell():new(oSection1, "B1_COD"	  , "QRY", 'CODIGO'	   , PesqPict('SB1',"B1_COD")    ,TamSX3("B1_COD")[1]+1,/*lPixel*/,/*{|| code-block de impressao }*/)
+  TRCell():new(oSection1, "B1_DESC"	  , "QRY", 'DESCRIวรO' , PesqPict('SB1',"B1_DESC")   ,TamSX3("B1_DESC")[1]+1,/*lPixel*/,/*{|| code-block de impressao }*/)
+  TRCell():new(oSection1, "B1_LOCAGRO", "QRY", 'LOCAL'	   , PesqPict('SB1',"B1_LOCAGRO")  ,TamSX3("B1_LOCAGRO")[1]+1,/*lPixel*/,/*{|| code-block de impressao }*/)
+  TRCell():new(oSection1, "D1_DTDIGIT", "QRY", 'ULT.CMP'   , PesqPict('SD1',"D1_DTDIGIT"),TamSX3("D1_DTDIGIT")[1]+1,/*lPixel*/,/*{|| code-block de impressao }*/)
+  TRCell():new(oSection1, "D2_EMISSAO", "QRY", 'ULT.SAIDA' , PesqPict('SD2',"D2_EMISSAO"),TamSX3("D2_EMISSAO")[1]+1,/*lPixel*/,/*{|| code-block de impressao }*/)
+     
+  oBreak := TRBreak():New(oSection1,oSection1:Cell("A2_NREDUZ"),,.F.)
+     
+  TRFunction():New(oSection1:Cell("A2_NREDUZ"),"TOTAL FORNECEDOR","COUNT",oBreak,,"@E 999999",,.F.,.F.)
+     
+  TRFunction():New(oSection1:Cell("A2_NREDUZ"),"TOTAL GERAL" ,"COUNT",,,"@E 999999",,.F.,.T.)	
+     
+return (oReport)
+     
+////////////////////////////////////
+Static Function ReportPrint(oReport)
+  Local cQuery:=""
+  Local cDataIni:= Dtos(dDataBase-180)
+  Local cDataFim:= Dtos(dDataBase)
+
+  Local oSection1 := oReport:Section(1)
+  oSection1:Init()
+  oSection1:SetHeaderSection(.T.)
+                                    
+  //Monto minha consulta conforme parametros passado
+  cQuery := " SELECT B1_COD,B1_DESC,B1_PROC,A2_NREDUZ,B1_LOCAGRO,"
+  cQuery += " (SUBSTRING(E.ULT_CMP,7,2)+'/'+SUBSTRING(E.ULT_CMP,5,2)+'/'+SUBSTRING(E.ULT_CMP,3,2))D1_DTDIGIT," 
+  cQuery += " (SUBSTRING(F.ULT_VND,7,2)+'/'+SUBSTRING(F.ULT_VND,5,2)+'/'+SUBSTRING(F.ULT_VND,3,2))D2_EMISSAO"
+  cQuery += " FROM"
+  cQuery += " ("
+  cQuery += "   SELECT DISTINCT B1_COD,B1_DESC,B1_PROC,A2_NREDUZ,B1_LOCAGRO" 
+  cQuery += "   FROM " + RetSqlName("SB1") + " SB1"
+  cQuery += "   INNER JOIN " + RetSqlName("SA2") + " SA2"
+  cQuery += "   ON B1_PROC = A2_COD"
+  cQuery += "   INNER JOIN" 
+  cQuery += "   ("
+  cQuery += "     SELECT D1_COD AS CODIGO" 
+  cQuery += "     FROM " + RetSqlName("SD1") + " SD1"
+  cQuery += "     WHERE SD1.D_E_L_E_T_ <> '*' "
+  cQuery += "     AND D1_FILIAL = '"+xFilial("SD1")+"' "
+  cQuery += "     AND D1_DTDIGIT BETWEEN '"+cDataIni+"' AND '"+cDataFim+"'"   
+  cQuery += "     AND (D1_CF='1102' OR D1_CF='2102' OR D1_CF='1403' OR D1_CF='2403')"
+  cQuery += "     GROUP BY D1_COD"
+  cQuery += "     UNION"
+  cQuery += "     SELECT D2_COD AS CODIGO" 
+  cQuery += "     FROM " + RetSqlName("SD2") + " SD2"
+  cQuery += "     WHERE SD2.D_E_L_E_T_ <> '*'" 
+  cQuery += "     AND D2_FILIAL = '"+xFilial("SD2")+"' "
+  cQuery += "     AND D2_EMISSAO BETWEEN '"+cDataIni+"' AND '"+cDataFim+"'" 
+  cQuery += "     AND ((D2_CF = '5102'  OR (D2_CF = '5933' AND D2_TES <> '531')"  
+  cQuery += "     OR (D2_CF = '5933' AND D2_TES = '531'))  OR D2_CF = '6102' OR D2_CF = '6929' "
+  cQuery += "     OR D2_CF = '6108'  OR D2_CF = '6933' OR D2_CF = '5404' OR D2_CF = '6404' "
+  cQuery += "     OR D2_CF = '5405' OR D2_CF = '6405')"
+  cQuery += "     GROUP BY D2_COD"
+  cQuery += "   )C ON B1_COD = C.CODIGO"
+  cQuery += "   WHERE SB1.D_E_L_E_T_ <> '*' AND SA2.D_E_L_E_T_ <> '*' "
+  cQuery += "   AND B1_PROC BETWEEN '"+MV_PAR01+"' AND '"+MV_PAR02+"'"
+  cQuery += "   AND B1_COD BETWEEN '"+MV_PAR03+"' AND '"+MV_PAR04+"'"   
+  cQuery += "   AND SB1.B1_MSBLQL<>'1' "
+  cQuery += ")D "
+  cQuery += "LEFT OUTER JOIN "
+  cQuery += "("
+  cQuery += "  SELECT D1_COD,MAX(D1_DTDIGIT)ULT_CMP"
+  cQuery += "  FROM " + RetSqlName("SD1") + " SD1 " 
+  cQuery += "  WHERE SD1.D_E_L_E_T_ <> '*'" 
+  cQuery += "  AND D1_FILIAL = '01'" 
+  cQuery += "  AND (D1_CF='1102' OR D1_CF='2102' OR D1_CF='1403' OR D1_CF='2403')"
+  cQuery += "  GROUP BY D1_COD"
+  cQuery += ")E "
+  cQuery += " ON B1_COD = E.D1_COD"
+  cQuery += " LEFT OUTER JOIN"
+  cQuery += "("
+  cQuery += "  SELECT D2_COD,MAX(D2_EMISSAO)ULT_VND"
+  cQuery += "  FROM " + RetSqlName("SD2") + " SD2"
+  cQuery += "  WHERE SD2.D_E_L_E_T_ <> '*'" 
+  cQuery += "  AND D2_FILIAL='01'"
+  cQuery += "  AND ((D2_CF = '5102'  OR (D2_CF = '5933' AND D2_TES <> '531')"  
+  cQuery += "  OR (D2_CF = '5933' AND D2_TES = '531'))  OR D2_CF = '6102' OR D2_CF = '6929'" 
+  cQuery += "  OR D2_CF = '6108'  OR D2_CF = '6933' OR D2_CF = '5404' OR D2_CF = '6404'"  
+  cQuery += "  OR D2_CF = '5405' OR D2_CF = '6405')"
+  cQuery += "  GROUP BY D2_COD"
+  cQuery += " )F "
+  cQuery += " ON B1_COD = F.D2_COD"
+  cQuery += " ORDER BY A2_NREDUZ,B1_COD"
+  
+  //crio o novo alias
+  dbUseArea(.T.,"TOPCONN",TcGenQry(,,ChangeQuery(cQuery)),"QRY",.T.,.T.)
+     
+  DbSelectArea('QRY')
+  dbGoTop()
+  oReport:SetMeter(QRY->(RecCount()))
+  
+  Do While QRY->(!Eof())
+     If oReport:Cancel()
+        Exit
+     EndIf
+     
+     oReport:IncMeter()
+     
+     oSection1:Cell("A2_NREDUZ"):SetValue(QRY->A2_NREDUZ)
+     oSection1:Cell("A2_NREDUZ"):SetAlign("CENTER")
+
+     oSection1:Cell("B1_COD"):SetValue(QRY->B1_COD)
+     oSection1:Cell("B1_COD"):SetAlign("CENTER")
+
+     oSection1:Cell("B1_DESC"):SetValue(QRY->B1_DESC)
+     oSection1:Cell("B1_DESC"):SetAlign("LEFT")
+     
+     oSection1:Cell("B1_LOCAGRO"):SetValue(QRY->B1_LOCAGRO)
+     oSection1:Cell("B1_LOCAGRO"):SetAlign("CENTER")
+     
+     oSection1:Cell("D1_DTDIGIT"):SetValue(QRY->D1_DTDIGIT)
+     oSection1:Cell("D1_DTDIGIT"):SetAlign("CENTER")
+     
+     oSection1:Cell("D2_EMISSAO"):SetValue(QRY->D2_EMISSAO)
+     oSection1:Cell("D2_EMISSAO"):SetAlign("LEFT")
+     
+     oSection1:PrintLine()
+     
+     dbSelectArea("QRY")
+     QRY->(dbSkip())
+  Enddo
+  oSection1:Finish()     
+  QRY->(dbCloseArea())
+  Return
+
+////////////////////////////////
+Static function AjustaSx1(cPerg)
+  PutSX1(cPerg,"01",PADR("Do Fornecedor",29)   +"?","","","mv_ch1","C",06,0,0,"G","","SA2","","","mv_par01")
+  PutSX1(cPerg,"02",PADR("Ate o Fornecedor",29)+"?","","","mv_ch2","C",06,0,0,"G","","SA2","","","mv_par02")
+  PutSX1(cPerg,"03",PADR("Do Produto",29)      +"?","","","mv_ch3","C",15,0,0,"G","","SB1","","","mv_par03")
+  PutSX1(cPerg,"04",PADR("Ate o Produto",29)   +"?","","","mv_ch4","C",15,0,0,"G","","SB1","","","mv_par04")
+Return

@@ -1,0 +1,151 @@
+#include "rwmake.ch"  
+
+User FUNCTION Zebra()
+
+Private lFlag := .T.
+Private oDlg
+Private oQnt  
+Private oCodD
+Private oCodA 
+
+Private oSair    
+
+Private cCodD      := Space(15)
+Private cCodA      := Space(15)
+Private cPrc       := "N"
+Private nQnt       := 1
+
+//SB1->(dbsetorder(1)) 
+U_MsSetOrder("SB1","B1_FILIAL+B1_COD")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima                   
+
+  @ 0,0 To 380,300 Dialog oDlg Title "Tela Codigo Barra!!!"
+  @ 02,05 To 165,145 Title ""   
+  
+  @ 10,30  Say "Produto de : "
+  @ 10,60  Get cCodD           Picture "@!" F3 "SB1"  Object oCodD     Size 55,10  VALID(Val_Prod(cCodD)) When .T.
+  @ 30,30  Say "Produto Ate: "
+  @ 30,60  Get cCodA           Picture "@!" F3 "SB1"  Object oCodA     Size 55,10  VALID(Val_Prod(cCodA)) When .T. 
+  @ 50,30  Say "Quantidade : "
+  @ 50,60  Get nQnt            Object oQnt    Picture "@E 999" Size 10,10   When .T.  
+  @ 70,30  Say "Preco S/N  : "
+  @ 70,60  Get cPrc            Object oPrc    Picture "@!" Size 10,10   Valid cPrc $ "SN"  
+
+  @ 165,05 To 190,145 Title ""     
+  @ 170,10 Button "_Confirmar" Size 40,15 Action Confirmar()
+  @ 170,50 Button "C_ancelar" Size 40,15 Action Cancelar()
+  @ 170,90 Button "_Sair" Size 40,15 Action Close(oDlg)
+  Activate Dialog oDlg Centered
+
+Return                                               
+//--------------------------------------------------------------------------------------
+  
+Static Function  Val_Prod(cCod)
+  Local lRet := .f.
+if SB1->(DBSEEK(XFILIAL("SB1")+cCod))  
+  lRet := .t.
+endif                                
+if Empty(cCod) .Or. UPPER(cCod) == "ZZZZZZZZZZZZZZZ"
+  lRet := .t.
+endif                                
+Return lRet
+//--------------------------------------------------------------------------------------
+
+Static Function Cancelar
+
+cCodD      := Space(15)
+cCodA      := Space(15)
+nQnt       := 0
+
+oCodD:SetFocus()
+
+Return       
+//--------------------------------------------------------------------------------------
+
+Static Function Confirmar
+
+IF EMPTY(nQnt) .OR. nQnt == 0
+  ALERT("Informe a Quantidade")
+  oQnt:SetFocus()
+  Return 
+ENDIF  
+TABTMP()
+Return                                                                   
+
+***********************************************************************************
+
+Static Function TABTMP()
+
+   Local cQry, nX, vDados
+   Local lTudoOk := .F.
+   
+//   SB0->(dbSetOrder(1))
+   U_MsSetOrder("SB0","B0_FILIAL+B0_COD")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima                   
+
+   cQry := "SELECT B1_COD, B1_XCODFAB, B1_DESC, B1_LOCAGRO FROM "+RetSQLName("SB1")+" SB1  WHERE SB1.D_E_L_E_T_=' ' AND B1_FILIAL = '"+XFILIAL("SB1")+"' AND "     
+   cQry += "B1_COD BETWEEN '"+cCodD+"' AND '"+cCodA+"' " 
+
+   dbUseArea(.T.,"TOPCONN",TcGenQry(,,ChangeQuery(cQry)),"XXX",.T.,.T.)
+   dbSelectArea("XXX")
+
+   if XXX->(Eof())
+     MSGBOX("Registro nao Encontrado! Favor Verifique os Parametros.","Atenção","ALERT")
+     XXX->(dbCloseArea())
+     Return
+   Endif
+
+   While !XXX->(Eof())
+      SB0->(dbSeek(xFilial("SB0")+XXX->B1_COD))        
+      vDados := { XXX->B1_COD, ALLTRIM(XXX->B1_DESC), ALLTRIM(XXX->B1_LOCAGRO), Transform(SB0->B0_PRV1,"@E 999,999,999.99"), XXX->B1_XCODFAB }
+      Imprimir(vDados)  // Se finalizou impressao               
+      dbSelectArea("XXX")
+      XXX->(dbSkip())
+   Enddo 
+   XXX->(dbCloseArea())
+   MSGBOX("Etiqueta Impessa com Sucesso!","Informação","INFO")     
+
+Return                                                                             
+
+***********************************************************************************
+
+Static Function Imprimir(vDados)
+Local nx, ny
+Local cPorta                          
+Local cn := "Marcio Macedo"
+cPorta := "LPT1"
+MSCBPRINTER("ELTRON", "LPT1",,,.F.,,,,) 
+
+//MSCBINFOETI("Exemplo 1","MODELO 1")
+for nx:=1 to nQnt
+    
+    MSCBBEGIN(1,6)
+    
+	//MSCBBOX(17,01,190,30,2)
+	MSCBLineH(40,06,83,2)
+	MSCBLineH(17,12,83,2)
+	MSCBLineH(17,18,83,2)
+	MSCBLineV(40,1,12,2) 
+    
+	MSCBSAY(20,02,'AGROPISCO',"N","2","1,2")
+	MSCBSAY(20,09,"(92)2121-4650", "N","1","1,2")
+		
+	MSCBSAY(43,02,"LOC.: "+vDados[3],"N","1","1,2")
+	MSCBSAY(60,02,"REF.: "+vDados[5],"N","1","1,2")
+	
+	MSCBSAY(43,07,"CODIGO", "N", "1", "1,1")
+	MSCBSAY(43,09,vDados[1], "N","1","1,2")
+                                   
+    If cPrc == "S" 
+	   MSCBSAY(60,07,"PRECO", "N", "1", "1,1")
+	   MSCBSAY(69,08,vDados[4], "N","2","1,2")
+    Endif
+    
+	MSCBSAY(20,15,vDados[2],"N","1","1,2")
+	MSCBSAYBAR(25,19,vDados[1],'N','MB07',06,.f.,.t.,,,2,2)	
+
+    MSCBEND()
+
+Next
+
+MSCBCLOSEPRINTER()
+
+Return

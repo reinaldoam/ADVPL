@@ -1,0 +1,235 @@
+#include "Protheus.ch"
+#include  "TbiConn.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณAGWKF18   บ Autor ณ REINALDO MAGALHAES บ Data ณ  03/10/17   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ POS-Venda - Clientes que compraram nos ultimos             บฑฑ
+ฑฑบ          ณ 15 dias.                                                   บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP6 IDE                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+User Function AGWKF18
+  Local cUser := "", cPass := "", cSendSrv := ""
+  Local cMsg := "", cMsgA := "", aData := ""
+  Local nSendPort := 0, nSendSec:= 2, nTimeout := 0, nPerc:= 0, nCountL:= 1
+  Local xRet
+  Local oServer, oMessage
+  
+  Private cDataIni := Dtos(Date()-15)
+  Private cDataFim := Dtos(Date())
+  
+  PREPARE ENVIRONMENT EMPRESA "01" FILIAL "02"
+
+  cTitulo:= "CLIENTES QUE COMPRARAM NOS ULTIMOS 15 DIAS "
+  
+  QryVenda()  
+     
+  //ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+  //ณ Preparando corpo do email ณ
+  //ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+  cHtml := '<html><head><title>Untitled Document</title>'
+  cHtml += '<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">'
+  cHtml += '</head><body><table width="100%" border="1" bordercolor="#66CCFF" bgcolor="#DFEFFF">'
+  //cHtml += '<tr><td><div align="center"><font size="4"><font color="#000000">'
+  //cHtml += 'TOP 100 DE VENDAS DE ' + FormatData(cDtSemIni) + ' a ' + FormatData(cDtSemFim)
+  //cHtml += '</font></font></div></td></tr><tr><td><font color="#333333"><strong>'
+  //cHtml += 'VENDAS DE ' + FormatData(cDtSemIni) + ' a ' + FormatData(cDtSemFim)
+  //cHtml += '</tr> 
+  cHtml += ' <th scope="col">Cliente</th>' 
+  cHtml += ' <th scope="col">Nome</th>' 
+  cHtml += ' <th scope="col">Contato</th>'
+  cHtml += ' <th scope="col">Telefone</th>'
+  cHtml += ' <th scope="col">Celular</th>'
+  cHtml += ' <th scope="col">E-mail 01</th>'
+  cHtml += ' <th scope="col">E-mail 02</th>'
+  cHtml += ' <th scope="col">Nota</th>'
+  cHtml += ' <th scope="col">Serie</th>'
+  cHtml += ' <th scope="col">Dt.Emissao</th>'
+  cHtml += ' <th scope="col">Produto</th>'
+  cHtml += ' <th scope="col">Descri็ใo</th>'
+  cHtml += ' <th scope="col">Quantidade</th>'  
+  cHtml += ' <th scope="col">Valor Unit.</th>'  
+  cHtml += ' <th scope="col">Valor Total</th>'
+  cHtml += ' <th scope="col">Vendedor</th>'
+  cHtml += ' </tr>'        
+
+  dbGoTop()
+
+  cQuebra:=""
+  Do while !XXX->(EOF())
+     cHtml += ' <tr>'
+     If XXX->A1_COD <> cQuebra
+        cHtml += ' <td>' + XXX->A1_COD + '</td>'   
+        cHtml += ' <td>' + XXX->A1_NOME + '</td>'   
+        cHtml += ' <td>' + XXX->A1_CONTATO + '</td>'   
+        cHtml += ' <td>' + XXX->A1_TEL + '</td>'   
+        cHtml += ' <td>' + XXX->A1_TELEX + '</td>'   
+        cHtml += ' <td>' + XXX->A1_EMAIL + '</td>'   
+        cHtml += ' <td>' + XXX->A1_XEMAIL + '</td>'   
+        cQuebra := XXX->A1_COD
+     Else 
+        cHtml += ' <td>' + Space(6) + '</td>'   
+        cHtml += ' <td>' + Space(60) + '</td>'   
+        cHtml += ' <td>' + Space(15) + '</td>'   
+        cHtml += ' <td>' + Space(15) + '</td>'   
+        cHtml += ' <td>' + Space(10) + '</td>'   
+        cHtml += ' <td>' + Space(60) + '</td>'   
+        cHtml += ' <td>' + Space(60) + '</td>'   
+     Endif   
+     cHtml += ' <td>' + XXX->F2_DOC + '</td>'
+     cHtml += ' <td>' + XXX->F2_SERIE + '</td>'      
+     cHtml += ' <td>' + DToc(XXX->F2_EMISSAO) + '</td>'   
+     cHtml += ' <td>' + XXX->B1_XCODFAB + '</td>'
+     cHtml += ' <td>' + XXX->B1_DESC + '</td>'                                                                  
+     cHtml += ' <td align="center">' + TRANSFORM(XXX->D2_QUANT,"999999") + '</td>'  
+     cHtml += ' <td align="center">' + TRANSFORM(XXX->D2_PRCVEN,"@E 999,999.99") + '</td>'  
+     cHtml += ' <td align="center">' + TRANSFORM(XXX->D2_TOTAL, "@E 999,999.99") + '</td>'  
+     cHtml += ' <td>' + XXX->A3_NREDUZ + '</td>'
+     cHtml += ' </tr>' 
+     nCountL++
+     XXX->(dbSkip())
+  Enddo   
+  
+  XXX->(dbCloseArea())
+  
+  cHtml += '</strong></font></td></tr></table></body></html>'
+  
+  //ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+  //ณ Preparando dados para envio do email ณ
+  //ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+  cUser    := Trim(GetMv("MV_RELACNT")) // workflow.amtec@arrodriguez.com.br    
+  cPass    := Trim(GetMv("MV_RELPSW"))  // amtec2015@@
+  cSendSrv := "br484.hostgator.com.br"  //"email-ssl.com.br"
+  nTimeout := 60 // define the timout to 60 seconds
+   
+  oServer := TMailManager():New()
+   
+  oServer:SetUseSSL( .F. )
+  oServer:SetUseTLS( .F. )
+   
+  If nSendSec == 0
+    nSendPort := 25 //default port for SMTP protocol
+  ElseIf nSendSec == 1
+    nSendPort := 465 //default port for SMTP protocol with SSL
+    oServer:SetUseSSL( .T. )
+  Else
+    nSendPort := 587 //default port for SMTPS protocol with TLS
+    oServer:SetUseTLS( .T. )
+  Endif
+   
+  // once it will only send messages, the receiver server will be passed as ""
+  // and the receive port number won't be passed, once it is optional
+  xRet := oServer:Init( "", cSendSrv, cUser, cPass, , nSendPort )
+  If xRet != 0
+     cMsg := "Could not initialize SMTP server: " + oServer:GetErrorString( xRet )
+     conout( cMsg )
+     Return
+  Endif
+   
+  // the method set the timout for the SMTP server
+  xRet := oServer:SetSMTPTimeout( nTimeout )
+  If xRet != 0
+    cMsg := "Could not set " + cProtocol + " timeout to " + cValToChar( nTimeout )
+    conout( cMsg )
+  Endif
+   
+  // estabilish the connection with the SMTP server
+  xRet := oServer:SMTPConnect()
+  If xRet <> 0
+    cMsg := "Could not connect on SMTP server: " + oServer:GetErrorString( xRet )
+    conout( cMsg )
+    Return
+  Endif
+   
+  // authenticate on the SMTP server (if needed)
+  xRet := oServer:SmtpAuth( cUser, cPass )
+  If xRet <> 0
+    cMsg := "Could not authenticate on SMTP server: " + oServer:GetErrorString( xRet )
+    conout( cMsg )
+    oServer:SMTPDisconnect()
+    Return
+  Endif
+
+  //ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+  //ณ Preparando o envio do email  ณ
+  //ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+  oMessage := TMailMessage():New()
+  oMessage:Clear()
+  oMessage:cDate := cValToChar( Date() )
+  oMessage:cFrom := cUser
+  oMessage:cTo :=  Trim(GetMv("MV_EMAILV")) //"reinaldo.magalhaes2014@gmail.com"
+   
+  oMessage:cBody := cHtml
+  oMessage:MsgBodyType( "text/html" )
+  oMessage:cSubject := "18-"+cTitulo
+  
+  xRet := oMessage:Send( oServer )
+  if xRet <> 0
+    cMsg := "Could not send message: " + oServer:GetErrorString( xRet )
+    conout( cMsg )
+  endif
+   
+  xRet := oServer:SMTPDisconnect()
+  if xRet <> 0
+    cMsg := "Could not disconnect from SMTP server: " + oServer:GetErrorString( xRet )
+    conout( cMsg )
+  endif
+    
+  RESET ENVIRONMENT
+
+Return
+
+/////////////////////////
+Static Function QryVenda
+  Local cQry:=""                          
+  Local cCliPad := Getmv("MV_CLIPAD")
+
+  cQry += "SELECT F2_DOC,F2_SERIE,F2_EMISSAO,D2_COD,B1_XCODFAB,B1_DESC,D2_QUANT,D2_PRCVEN,D2_TOTAL,A1_COD,A1_NOME,A1_CONTATO,A1_TEL,A1_TELEX,A1_XEMAIL,A1_EMAIL,A3_NREDUZ "
+  cQry += "FROM "+RetSQLName("SF2")+" A, "
+  cQry +=         RetSQLName("SD2")+" B, "   
+  cQry +=         RetSQLName("SA1")+" C, "
+  cQry +=         RetSQLName("SB1")+" D, "   
+  cQry +=         RetSQLName("SA3")+" E "   
+  cQry += "WHERE A.D_E_L_E_T_ <> '*' AND B.D_E_L_E_T_ <> '*' AND C.D_E_L_E_T_ <> '*' AND D.D_E_L_E_T_ <> '*' AND E.D_E_L_E_T_ <> '*' "
+  cQry += "  AND F2_FILIAL='02' "
+  cQry += "  AND D2_FILIAL='02' "
+  cQry += "  AND B1_FILIAL='02' "   
+  cQry += "  AND D2_CLIENTE = A1_COD "
+  cQry += "  AND D2_COD = B1_COD "
+  cQry += "  AND F2_DOC=D2_DOC "
+  cQry += "  AND F2_SERIE=F2_SERIE "
+  cQry += "  AND D2_CLIENTE <> '"+cCliPad+"' " 
+  cQry += "  AND D2_EMISSAO BETWEEN '"+cDataIni+"' AND '"+cDataFim+"' " 
+  cQry += "  AND D2_CF IN('5102','6102','6929','6108','5404','6404','5405','6405','5119','6119') "
+  cQry += "  AND F2_VEND1=A3_COD "  
+  cQry += "  AND B1_XTPPROD='E' "  
+  cQry += "  AND D2_FILIAL+D2_DOC+D2_SERIE+D2_ITEM NOT IN "
+  cQry += "( "
+  cQry += "  SELECT D2_FILIAL+D2_DOC+D2_SERIE+D2_ITEM "
+  cQry += "  FROM "+RetSQLName("SD2")+" SD2 "
+  cQry += "  INNER JOIN "+RetSQLName("SD1")+" SD1 ON D1_FILIAL = D2_FILIAL AND D1_NFORI = D2_DOC AND D1_SERIORI = D2_SERIE AND D1_ITEMORI = D2_ITEM "
+  cQry += "  WHERE SD2.D_E_L_E_T_ <> '*' AND SD1.D_E_L_E_T_ <> '*' "
+  cQry += "  AND D2_EMISSAO BETWEEN '"+cDataIni+"' AND '"+cDataFim+"' " 
+  cQry += "  AND ((D2_CF = '5102' OR (D2_CF = '5933' AND D2_TES <> '531') "
+  cQry += "  OR (D2_CF = '5933' AND D2_TES = '531')) " 
+  cQry += "  OR D2_CF = '6102' OR D2_CF = '6929' OR D2_CF = '6108' "
+  cQry += "  OR D2_CF = '6933' OR D2_CF = '5404' OR D2_CF = '6404' "
+  cQry += "  OR D2_CF = '5405' OR D2_CF = '6405' OR D2_CF = '5119' OR D2_CF = '6119')"
+  cQry += ") "
+  //cQry += "ORDER BY A1_NOME,F2_EMISSAO "
+  cQry += "ORDER BY A3_NREDUZ,F2_EMISSAO "
+
+  dbUseArea( .T., "TOPCONN", TcGenQry(,,CHANGEQUERY(cQry)), "XXX", .T., .F. )
+
+  TcSetField("XXX", "F2_EMISSAO", "D", 8, 0)  // Formata para tipo Data
+
+  dbGoTop()
+
+Return	 

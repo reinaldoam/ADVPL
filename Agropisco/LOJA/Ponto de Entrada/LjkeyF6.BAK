@@ -1,0 +1,1142 @@
+#include "Protheus.ch"
+#include "Rwmake.ch"
+
+/*
+   Objetivo.....: 
+   Ponto de Entrada para Consulta Customizada de Produtos na Tela de Venda Assistida.
+*/
+
+User Function LjkeyF6
+	Local cAlias := Alias()
+	Local nOrd   := dbSetOrder()
+	Local nReg   := Recno()
+	Local lRet   := .f.
+	
+	Local oDlgMain,oFont3,oFont4,bOk,bCancel,cFile
+	
+	Local c_Fabric  := Space(20)
+	Local c_Grupo   := Space(30)
+	Local c_Descr   := Space(30)
+	Local c_Selecao := ""
+	
+	Local cFiltro,cChave,cIndSA21,aStru
+	
+	Define Font oFnt3 Name "Ms Sans Serif" Bold
+	Define Font oFnt4 Name "Tahoma" BOLD Size 013,030
+	
+	If Select("wItem") > 0
+		MsgBox("Ja existe uma sessao aberta em memoria!!!","ALERT")
+		return lRet
+	Endif
+	
+	//- Arquivo temporario de consulta
+	aStru:= { {"WK_COD", "C", 15, 0 },;
+	          {"WK_PED", "C",  6, 0 } }
+	
+	cFile:= CriaTrab(aStru,.t.)
+	dbUseArea(.t.,,cFile,"wItem",.F.,.F.)
+	
+	//Begin sequence
+
+	Define msdialog oDlgMain Title "Consulta de Produtos" From 96,5 to 480,550 Pixel
+	
+	@010, 5 to 50,270 Of oDlgMain Pixel
+	@180, 200 Say "CTRL+O -> Salvar e sair" Size 100,8 Of oDlgMain Pixel Font oFnt3
+
+	@015, 15 Say " Descrição:"  Size 35,8 Of oDlgMain Pixel Font oFnt3
+	@015, 50 Get c_Descr Picture "@!" Size 129,8 Pixel of oDlgMain
+
+	@025, 15 Say "     Grupo:" Size 35,8 Of oDlgMain Pixel Font oFnt3
+	@025, 50 Get c_Grupo Picture "@!" Size 100,8 Pixel of oDlgMain
+       
+	@035, 15 Say "Fabricante:" Size 35,8 Of oDlgMain Pixel Font oFnt3
+	@035, 50 Get c_Fabric Picture "@!" Size 70,8 Pixel of oDlgMain 
+	
+	//@095, 15 Get c_Selecao Size 250,80 Of oDlgMain Pixel Font oFnt3 when .F. Memo
+	
+	bOk := {|| Grava_Item(@c_Selecao),lRet:= .t.,oDlgMain:End()}
+	bCancel := {||oDlgMain:End()}
+	
+	Activate Msdialog oDlgMain On Init EnchoiceBar(oDlgMain,bOk,bCancel) Centered
+	//End Sequence
+	
+	dbSelectArea("wItem")
+	dbCloseArea()
+	Ferase(cFile+GetDBExtension())
+	
+	dbSelectArea(cAlias)
+	dbSetOrder(nOrd)
+	dbGoTo(nReg)
+return lRet
+
+**************************************************************************************************************
+
+User function CrtGrupo(c_Grupo,c_Codgrupo)
+	Local cAlias:= Alias()
+	Local nOrd  := dbSetOrder()
+	
+	Local cFile,n_Len,aStru,aCampos,oDlgGrupo,lRet:= .t.
+	
+	If !Empty(c_Grupo)
+		
+		dbSelectArea("SBM")
+		dbSetorder(2)
+		
+		Set SoftSeek On
+		
+		If dbSeek(xFilial("SBM")+ALLTRIM(c_Grupo))
+			
+	
+	
+			If !Alltrim(SBM->BM_DESC) == ALLTRIM(c_Grupo)
+				
+				aStru:= { {"WK_COD"   , "C", 4,0},;
+				{"WK_GRUPO" , "C", 30,0} }
+				
+				aCampos:= {{"WK_GRUPO",,"Grupo"}}
+				
+				cFile:= CriaTrab(aStru,.T.)
+				dbUseArea(.t.,,cFile,"wGrupo",.F.,.F.)
+				
+				n_Len:= Len(Alltrim(c_Grupo))
+				
+				Do while Substr(SBM->BM_DESC,1,n_Len) = Alltrim(c_Grupo) .and. !SBM->(Eof())
+					wGrupo->(Dbappend())
+					wGrupo->WK_COD  := SBM->BM_GRUPO
+					wGrupo->WK_GRUPO:= SBM->BM_DESC
+					SBM->(Dbskip())
+				Enddo
+				Set SoftSeek Off
+				wGrupo->(DbGotop())
+				Define Msdialog oDlgGrupo Title "Consulta por grupo" From 96,5 to 410,820 Pixel
+				oMark:= MsSelect():New("wGrupo",,,aCampos,.F.,"",{35,1,(oDlgGrupo:nHeight-30)/2,(oDlgGrupo:nClientWidth-4)/2})
+				oMark:bAval:= {|| Sel_Grupo(@c_Grupo,@c_Codgrupo),oDlgGrupo:End()}
+				bOk:= {|| Sel_Grupo(@c_Grupo,@c_Codgrupo),oDlgGrupo:End()}
+				bCancel := {||oDlgGrupo:End()}
+				Activate Msdialog oDlgGrupo On Init EnchoiceBar(oDlgGrupo,bOk,bCancel) Centered
+				dbSelectArea("wGrupo")
+				dbCloseArea()
+				Ferase(cFile+GetDBExtension())
+			Else
+				c_Codgrupo:= SBM->BM_GRUPO
+				c_Grupo:= SBM->BM_DESC
+			Endif
+		Endif
+	Endif
+	dbSelectArea(cAlias)
+	dbSetOrder(nOrd)
+return lRet
+
+**************************************************************************************************************
+
+User function CrtFabricante(c_Fabric,c_Codfab)
+	Local cAlias:= Alias()
+	Local nOrd  := dbSetOrder()
+	
+	Local oDlgFabric,cFiltro,cChave,cIndSA21,lRet:= .t.
+	
+	Local aStru,aCampos,cFile
+	
+	//- Filtrando fabricantes
+	dbSelectArea("ZA8")
+	dbSetOrder(2)
+
+	If !Empty(c_Fabric)
+		
+		Set Softseek on
+		
+		If ZA8->(dbSeek(xFilial("ZA8")+alltrim(c_Fabric)))
+			If !(Alltrim(ZA8->ZA8_DESCRI) == Alltrim(c_Fabric))
+				
+				aStru:= { {"WK_COD"   , "C" ,6 ,0},;
+				{"WK_FABRIC", "C" ,40,0} }
+				
+				aCampos:= {{"WK_FABRIC",,"Fabricante"}}
+				
+				cFile:= CriaTrab(aStru,.t.)
+				dbUseArea(.t.,,cFile,"wFabric",.F.,.F.)
+				
+				n_Len:= Len(Alltrim(c_Fabric))
+				
+				Do while Substr(ZA8->ZA8_DESCRI,1,n_Len) = Alltrim(c_Fabric) .and. !ZA8->(Eof())
+					wFabric->(DbAppend())
+					wFabric->WK_COD   := ZA8->ZA8_FABRIC
+					wFabric->WK_FABRIC:= ZA8->ZA8_DESCRI
+					ZA8->(Dbskip())
+				Enddo
+				Set Softseek Off
+				wFabric->(DbGotop())
+				Define Msdialog oDlgFabric Title "Consulta por fabricante" From 96,5 to 410,820 Pixel
+				oMark:= MsSelect():New("wFabric",,,aCampos,.f.,"",{35,1,(oDlgFabric:nHeight-30)/2,(oDlgFabric:nClientWidth-4)/2})
+				oMark:bAval:= {|| Sel_Fabricante(@c_Fabric,@c_Codfab),oDlgFabric:End()}
+				bOk:= {|| Sel_Fabricante(@c_Fabric,@c_Codfab),oDlgFabric:End()}
+				bCancel:= {||oDlgFabric:End()}
+				Activate Msdialog oDlgFabric On Init EnchoiceBar(oDlgFabric,bOk,bCancel) Centered
+				dbSelectArea("wFabric")
+				dbCloseArea()
+				Ferase(cFile+GetDBExtension())
+			Else
+				c_Codfab:= ZA8->ZA8_FABRIC
+				c_Fabric:= ZA8->ZA8_DESCRI
+			Endif
+		Endif
+	Endif
+	dbSelectArea(cAlias)
+	dbSetOrder(nOrd)
+
+	//- Filtrando fabricantes
+	dbSelectArea("ZA8")
+	dbSetOrder(1)
+return lRet
+
+**************************************************************************************************************
+
+
+**************************************************************************************************************
+
+Static function Grv_Dados(cFile)
+	
+	//- Buscando preco de venda
+	SB0->(Dbseek(xFilial("SB0") + SB1T->B1_COD))
+	
+	//- Buscando saldo em estoque
+	SB2->(Dbseek(xFilial("SB2") + SB1T->B1_COD + ALLTRIM(GETMV("MV_LOCPAD"))))
+	
+    //- Busca Fabricante.
+    ZA8->(dbSeek(xFilial("ZA8")+SB1T->B1_X_CODFA))	
+
+	If SB1T->B1_TIPO $ c_Tipo
+		(cFile)->(DbAppend())
+		(cFile)->WK_COD    := Substr(SB1T->B1_COD,1,15)
+		(cFile)->WK_NUMFAB := Substr(SB1T->B1_X_REFPR,1,15)
+		(cFile)->WK_YALTER := SB1T->B1_X_REFOR
+		(cFile)->WK_FABRIC := Substr(ZA8->ZA8_DESCRI,1,20)
+		(cFile)->WK_DESC   := SB1T->B1_DESC
+		(cFile)->WK_APLIC  := SB1T->B1_X_APLIC
+		(cFile)->WK_APLIC2 := Substr(SB1T->B1_X_APLIC,1,35)
+		(cFile)->WK_QUANT  := SB2->B2_QATU - SB2->B2_RESERVA
+		(cFile)->WK_PRV1   := &("SB0->B0_PRV" + cTabPad)//SB0->B0_PRV1
+	Endif
+return
+
+**************************************************************************************************************
+
+Static function Chk_Selecao(cFile,oMark,cMarca)
+	Local c_Serie := (cFile)->WK_NUMFAB
+	Local c_Fabric:= (cFile)->WK_FABRIC
+	Local c_Descr := (cFile)->WK_DESC
+	Local c_Aplic := (cFile)->WK_APLIC
+	Local c_Saldo := (cFile)->WK_QUANT
+	Local c_Preco := (cFile)->WK_PRV1
+	Local c_Quant := (cFile)->WK_PED
+	
+	//checa se produto esta bloqueado p/ inventario.
+	if BLQINVENT((cFile)->WK_COD,'01',DDATABASE)
+		Alert("Produto Bloqueado para inventario.")
+		return 
+	Endif
+	
+	@ 96,5 to 320,680 Dialog oQuant Title "Quantidade"
+	@ 10,5 to 90,350
+	
+	@015, 15 Say "Codigo"
+	@015, 50 Get c_Serie  when .f.
+	
+	@025, 15 Say "Marca"
+	@025, 50 Get c_Fabric when .f.
+	
+	@035, 15 Say "Produto"
+	@035, 50 Get c_Descr  when .f.
+	
+	@045, 15 Say "Aplicação"
+	@045, 50 Get c_Aplic  when .f.
+	
+	@055, 15 Say "Saldo"
+	@055, 50 Get c_Saldo  when .f.
+	
+	@065, 15 Say "Preço"
+	@065, 50 Get c_Preco  when .f.
+
+	@090,80 Button "Confirmar" Size 40,15 Action MntQuant(cFile,c_Quant)
+	
+	Activate Dialog oQuant Centered
+return nil
+
+**************************************************************************************************************
+
+Static function MntQuant(cFile,c_Quant)
+	Close(oQuant)
+	
+	If !(cFile)->(Eof()).or. (cFile)->(Bof())
+		If (cFile)->WK_MARCA = "X"
+			(cFile)->WK_MARCA:= " "
+		Else
+			(cFile)->WK_MARCA:= "X"
+		Endif
+	Endif
+return .t.
+
+**************************************************************************************************************
+
+Static function CarregaItem(cFile,c_Selecao)
+	Local cAlias := Alias()
+	Local nOrd   := dbSetOrder()
+	
+	//- Tabela de precos
+	dbSelectArea("SB0")
+	DbSetOrder(1)
+	
+	//- Cadastro de produtos
+	dbSelectArea("SB1")
+	DbSetorder(1)
+	
+	(cFile)->(DbGotop())
+	
+	Do while !(cFile)->(Eof())
+		If Empty((cFile)->WK_MARCA)
+			(cFile)->(Dbskip())
+			Loop
+		Endif
+		wItem->(DbAppend())
+		wItem->WK_COD:= (cFile)->WK_COD
+		wItem->WK_PED:= (cFile)->WK_PED
+		
+		//- Saldo fisico e financeiro
+		SB2->(Dbseek(xFilial("SB2") + wItem->WK_COD))
+		
+		//- Preço de venda
+		SB0->(Dbseek(xFilial("SB0") + wItem->WK_COD))
+		
+		//- Produtos
+		SB1->(Dbseek(xFilial("SB1") + wItem->WK_COD))
+		
+		c_Selecao:= c_Selecao + ;
+		U_FillerD(SB1->B1_X_CODFA,15) + "  " + ;
+		U_FillerD(SB1->B1_DESC,20)  + "  " + ;
+		"Ped:" + wItem->WK_PED      + "  " + ;
+		"Preço:" + Transform(&("SB0->B0_PRV" + cTabPad),"@E 999,999.99")+ "  " + ;
+		"Total:" + Transform(&("SB0->B0_PRV" + cTabPad)*Val(wItem->WK_PED),"@E 999,999.99")+chr(13)
+		(cFile)->(Dbskip())
+	Enddo
+	dbSelectArea(cAlias)
+	dbSetOrder(nOrd)
+return
+
+**************************************************************************************************************
+
+Static function Grava_Item(c_Selecao)
+	Local cAlias := Alias()
+	Local nOrd   := dbSetOrder()
+	Local nUsado
+	Local lMaisDeUm:= !Empty(aCols[1,2])
+	
+	Local n_ColProduto,n_ColDescri,n_ColQuant,n_ColVrunit,n_ColVlritem
+	Local n_ColLocal,n_ColUm,n_ColDesc,n_ColValdesc,n_ColTes,n_ColValRefpr
+	Local n_ColCF,n_ColDescpro,n_ColTabela,n_ColPctab,n_ColYSerie
+	Local n_ColBaseIcm,n_ColValIPI,n_ColValIcm,n_ColValIss
+	
+	//- Pesquisa por descrição
+	
+	Local aDescr:= {}
+	Local nPos,nTam,oDlgDescr,c_Cond:=""
+	
+	Local aStru,aCampos,cFile,lRet:= .t.,lPesquisa:= .f.
+	
+	aStru:= { {"WK_DESCR" , "C", 200,0} }
+	
+	aCampos:= {{"WK_DESCR",,"Descrição"}}
+	
+	cFile:= CriaTrab(aStru,.T.)
+	dbUseArea(.t.,,cFile,"wDesc",.F.,.F.)
+	Index on WK_DESCR to &cFile
+	
+	dbSelectArea("SB1")
+	
+	Set Softseek on
+	
+	n_Tam:= Len(Alltrim(c_Descr))
+	cFiltro := Alltrim(c_Descr)
+	
+	While At("%", cFiltro) > 0
+  	   nPosAt  := At("%", cFiltro)
+	   cPesq   := Substring(cFiltro, 1, nPosAt-1)
+	   cFiltro := Substring(cFiltro, nPosAt+1, Len(cFiltro)) 
+	   AADD( aCond,{ cPesq })
+	Enddo
+
+	//- Grupo + Fabricante + Descricao
+	If !Empty(c_CodGrupo) .and. !Empty(c_Codfab) .and. !Empty(c_Descr)
+		c_Cond+= " B1_GRUPO = '" + ALLTRIM(c_Codgrupo) + "' AND "
+		c_Cond+= " B1_X_CODFA = '" + ALLTRIM(c_Codfab) + "' AND"
+		c_Cond+= " SUBSTRING(B1_X_DSUBG,1,"+Alltrim(str(n_Tam))+") = '"+ALLTRIM(c_Descr)+"' "
+		lPesquisa:= .t.
+		
+		//- Grupo + Fabricante
+	Elseif !Empty(c_CodGrupo) .and. !Empty(c_Codfab)
+		c_Cond+= " B1_GRUPO = '" + ALLTRIM(c_Codgrupo) + "' AND "
+		c_Cond+= " B1_X_CODFA = '" + ALLTRIM(c_Codfab) + "'"
+		lPesquisa:= .t.
+		
+		//- Fabricante + Descricao
+	Elseif !Empty(c_Codfab) .and. !Empty(c_Descr)
+		c_Cond+= " B1_X_CODFA = '" + c_Codfab + "' AND "
+		c_Cond+= " SUBSTRING(B1_X_DSUBG,1,"+Alltrim(str(n_Tam))+") = '"+ALLTRIM(c_Descr)+"' "
+		lPesquisa:= .t.
+		
+		//- Grupo + Descricao
+	Elseif !Empty(c_CodGrupo) .and. !Empty(c_Descr)
+		c_Cond+= " B1_GRUPO = '" + ALLTRIM(c_Codgrupo) + "' AND "
+		c_Cond+= " SUBSTRING(B1_X_DSUBG,1,"+Alltrim(str(n_Tam))+") = '"+ALLTRIM(c_Descr)+"' "
+		lPesquisa:= .t.
+		
+		//- Grupo
+	Elseif !Empty(c_CodGrupo)
+		c_Cond+= " B1_GRUPO = '" + ALLTRIM(c_Codgrupo) + "' "
+		lPesquisa:= .t.
+		
+		//- Descricao
+	Elseif !Empty(c_Descr)
+		
+		cQry := "SELECT B1_X_DSUBG "
+		cQry += "FROM "+RetSqlName("SB1")+" SB1 "
+		cQry += "WHERE SB1.D_E_L_E_T_ <> '*' "
+		cQry += "  AND B1_FILIAL = '"+xFilial("SB1")+"' "
+		cQry += "  AND SUBSTRING(B1_X_DSUBG,1,"+Alltrim(str(n_Tam))+") = '"+alltrim(c_Descr)+"' "
+		cQry += "  AND B1_TIPO IN("+c_Tipo+") "
+		cQry += "GROUP BY B1_X_DSUBG "
+		
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,ChangeQuery(cQry)),"SB1T",.T.,.T.)
+		dbSelectArea("SB1T")		
+		While !SB1T->(EOF())
+				wDesc->(Dbappend())
+				wDesc->WK_DESCR:= SB1T->B1_X_DSUBG
+		  SB1T->(DbSkip())
+		Enddo
+		SB1T->(dbCloseArea())
+
+		lPesquisa:= .f.
+	Endif
+	
+	Set SoftSeek Off	
+	If lPesquisa
+
+		cQry := "SELECT B1_X_DSUBG "
+		cQry += "FROM "+RetSqlName("SB1")+" SB1 "
+		cQry += "WHERE SB1.D_E_L_E_T_ <> '*' "
+		cQry += "  AND B1_FILIAL = '"+xFilial("SB1")+"' "
+		cQry += "  AND "+ ALLTRIM(c_Cond)+ " "
+		cQry += "  AND B1_TIPO IN("+c_Tipo+") "
+		cQry += "GROUP BY B1_X_DSUBG "
+		
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,ChangeQuery(cQry)),"SB1T",.T.,.T.)
+		dbSelectArea("SB1T")
+		While !SB1T->(EOF())
+			wDesc->(Dbappend())
+			wDesc->WK_DESCR:= SB1T->B1_X_DSUBG
+		  SB1T->(DbSkip())
+		Enddo
+		SB1T->(dbCloseArea())
+
+	Endif
+	
+	wDesc->(DbGotop())
+	Define Msdialog oDlgDescr Title "Consulta por descricao" From 96,5 to 410,820 Pixel
+	oMark:= MsSelect():New("wDesc",,,aCampos,.F.,"",{35,1,(oDlgDescr:nHeight-30)/2,(oDlgDescr:nClientWidth-4)/2})
+	oMark:bAval:= {|| Sel_Descr(@c_Descr),oDlgDescr:End()}
+	bOk := {||Sel_Descr(@c_Descr),oDlgDescr:End()}
+	bCancel := {||oDlgDescr:End()}
+	Activate Msdialog oDlgDescr On Init EnchoiceBar(oDlgDescr,bOk,bCancel) Centered
+	
+	dbSelectArea("wDesc")
+	dbCloseArea()
+	
+	ferase(cFile+GetDbExtension())
+	ferase(cFile+OrdBagExt())
+	
+	dbSelectArea(cAlias)
+	dbSetOrder(nOrd)
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	wItem->(Dbgotop())
+	
+	If wItem->(Eof())
+		dbSelectArea(cAlias)
+		dbSetOrder(nOrd)
+		Return
+	Endif
+	
+	//- TES
+	dbSelectArea("SF4")
+	dbSetOrder(1)
+	
+	//- Preco de vendas
+	dbSelectArea("SB0")
+	dbSetOrder(1)
+	
+	//- Produtos
+	dbSelectArea("SB1")
+	dbSetOrder(1)
+	
+	//- Itens do orcamento
+	dbSelectArea("SL2")
+	
+	nUsado:= Len(aCols[1])-1                           
+	n_ColItem    := U_Posicao("LR_ITEM")
+	n_ColProduto := U_Posicao("LR_PRODUTO")
+	n_ColDescri  := U_Posicao("LR_DESCRI")
+	n_ColQuant   := U_Posicao("LR_QUANT")
+	n_ColVrunit  := U_Posicao("LR_VRUNIT")
+	n_ColVlritem := U_Posicao("LR_VLRITEM")
+	n_ColLocal   := U_Posicao("LR_LOCAL")
+	n_ColUm      := U_Posicao("LR_UM")
+	n_ColDesc    := U_Posicao("LR_DESC")
+	n_ColValdesc := U_Posicao("LR_VALDESC")
+	n_ColValRefpr:= U_Posicao("LR_X_REFPR")
+	n_ColTes     := U_Posicao("LR_TES")
+	n_ColCF      := U_Posicao("LR_CF")
+	n_ColDescpro := U_Posicao("LR_DESCPRO")
+	n_ColTabela  := U_Posicao("LR_TABELA")
+	n_ColPctab   := U_Posicao("LR_PRCTAB")
+	n_ColBaseIcm := U_Posicao("LR_BASEICM")
+	n_ColValIPI  := U_Posicao("LR_VALIPI")
+	n_ColValIcm  := U_Posicao("LR_VALICM")
+	n_ColValIss  := U_Posicao("LR_VALISS")
+	
+	wItem->(Dbgotop())
+	Do while !wItem->(Eof())
+		
+		If SB1->(Dbseek(xFilial("SB1")+wItem->WK_COD))
+			
+			//- Tabela de preços
+			SB0->(Dbseek(xFilial("SB0")+SB1->B1_COD))
+			
+			If lMaisDeUm
+				Aadd(aCols, Array(nUsado+1) )
+			Endif
+			
+			nTam := Len(aCols)
+			For c:=1 To nUsado
+				If aHeader[c,8] == "C"
+					aCols[nTam,c]:= Space(aHeader[c,4])
+				Elseif aHeader[c,8] == "N"
+					aCols[nTam,c]:= 0
+				Elseif aHeader[c,8] == "D"
+					aCols[nTam,c]:= Ctod("  /  /  ")
+				Elseif aHeader[c,8] == "M"
+					aCols[nTam,c]:= ""
+				Else
+					aCols[nTam,c]:= .F.
+				Endif
+			Next
+			aCols[nTam,nUsado+1] := .F.
+			lMaisDeUm := .T.
+			
+			//- Gravando no Browse 
+			aCols[nTam,n_ColItem]    := strzero(nTam,2)
+			aCols[nTam,n_ColProduto] := SB1->B1_COD        //- L2_PRODUTO
+			aCols[nTam,n_ColDescri]  := Substr(SB1->B1_DESC,1,30)       //- L2_DESCRI
+			aCols[nTam,n_ColQuant]   := Val(wItem->WK_PED) //- L2_QUANT
+			aCols[nTam,n_ColVrunit]  := &("SB0->B0_PRV" + cTabPad) //SB0->B0_PRV1       //- L2_VRUNIT
+			aCols[nTam,n_ColVlritem] := &("SB0->B0_PRV" + cTabPad) * Val(wItem->WK_PED) //- L2_Vlritem
+			aCols[nTam,n_ColUm]      := SB1->B1_UM         //- L2_UM
+			aCols[nTam,n_ColDesc]    := 0.00               //- L2_DESC
+			aCols[nTam,n_ColValdesc] := 0.00               //- L2_VALDESC
+			aCols[nTam,n_ColValRefpr]:= SB1->B1_X_REFPR    //- L2_X_REFPR
+			nValorBase:= nValorBase + &("SB0->B0_PRV" + cTabPad) //SB0->B0_PRV1
+		Endif
+  		n := nTam   
+			//Dispara o gatilho do produto para acertar o valor da mercadoria
+		SX3->(dbSetOrder(2))
+		SX3->(dbSeek("LR_PRODUTO")) 
+		IF ExistTrigger("LR_PRODUTO") 
+			M->LR_PRODUTO  := aCols[n][n_ColProduto]
+			RunTrigger(2,n)
+		EndIf 
+		f_AColsDet()
+        
+        oGetVA:oBrowse:lDisablePaint := .F.
+		oGetVA:oBrowse:Refresh(.T.)
+
+		wItem->(Dbskip())
+	Enddo
+	c_Selecao:= ""
+	dbSelectArea(cAlias)
+	dbSetOrder(nOrd)
+return
+
+**************************************************************************************************************
+
+Static function Sel_Fabricante(c_Fabric,c_Codfab)
+	c_Codfab:= wFabric->WK_COD
+	c_Fabric:= wFabric->WK_FABRIC
+return nil
+
+**************************************************************************************************************
+
+Static function Sel_Grupo(c_Grupo,c_Codgrupo)
+	c_Codgrupo:= wGrupo->WK_COD
+	c_Grupo   := wGrupo->WK_GRUPO
+return nil
+
+**************************************************************************************************************
+
+Static function Sel_Descr(c_Descr)
+	c_Descr:= wDesc->WK_DESCR
+return nil
+
+**************************************************************************************************************
+
+User function Posicao(pCampo)
+	Local nPos
+	Local cCampo:= AllTrim(pCampo)+Space(10-Len(AllTrim(pCampo)))
+	nPos:= Ascan(aHeader,{|x| x[2] = cCampo })
+return(nPos)
+
+**************************************************************************************************************
+
+User function FillerD(c_String,n_Len)
+	Local nLen,cString
+	nLen:= Len(Alltrim(c_String))
+	cString:= Substr(c_String,1,nLen) + Replicate(" ",n_Len-nLen)
+return(cString)
+
+**************************************************************************************************************
+
+Static function Similar(c_Simil,c_Simil2)
+	Local cAlias := Alias()
+	Local nOrd   := dbSetOrder()
+	Local aStru  := {}
+	Local aCampos:= {}
+	Local cFile
+	
+	aStru:= { {"WK_SIMILAR", "C", 15,0},;
+	{"WK_NUMFAB" , "C", 15,0},;
+	{"WK_NOMFAB" , "C", 20,0},;
+	{"WK_QUANT"  , "N", 12,2},;
+	{"WK_PRV1"   , "C", 10,0}}
+	
+	aCampos:= { {"WK_SIMILAR",, "Similar"},;
+	{"WK_NUMFAB" ,, "Nr.Fabric"},;
+	{"WK_NOMFAB" ,, "Fabricante"},;
+	{"WK_QUANT"  ,, "Quant."},;
+	{"WK_PRV1"   ,, "Venda"} }
+	
+	cFile:= CriaTrab(aStru,.T.)
+	dbUseArea(.t.,,cFile,"wSimilar",.F.,.F.)
+	
+	dbSelectArea("SB0")
+	dbSetorder(1)
+	
+	dbSelectArea("SB2")
+	dbSetorder(1)
+	
+	//- Similar 1
+	If !Empty(c_Simil)
+		
+		dbSelectArea("SB1")
+		dbSetOrder(1)
+		
+		c_Simil:= Alltrim(c_Simil)
+		
+		cQry := "SELECT * "
+		cQry += "FROM "+RetSqlName("SB1")+" SB1 "
+		cQry += "WHERE SB1.D_E_L_E_T_ <> '*' "
+		cQry += "  AND B1_FILIAL = '"+xFilial("SB1")+"' "
+		cQry += "  AND B1_X_REFOR = '"+c_Simil+"' "
+		cQry += "ORDER BY B1_FILIAL "
+		
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,ChangeQuery(cQry)),"SB1T",.T.,.T.)
+		dbSelectArea("SB1T")
+		
+		While !SB1T->(EOF())
+			wSimilar->(DbAppend())
+			wSimilar->WK_SIMILAR:= "SIMILAR 1"
+			wSimilar->(DbAppend())
+			wSimilar->WK_SIMILAR:= "---------------"
+			
+			//-> Saldo fisico e financeiro
+			SB2->(Dbseek(xFilial("SB2") + SB1T->B1_COD + ALLTRIM(GETMV("MV_LOCPAD"))))
+			
+			//-> Preço de venda
+			SB0->(Dbseek(xFilial("SB0") + SB1T->B1_COD))
+			      
+		    //- Busca Fabricante.
+		    ZA8->(dbSeek(xFilial("ZA8")+SB1T->B1_X_CODFA))	
+
+			wSimilar->(DbAppend())
+			wSimilar->WK_SIMILAR:= SB1T->B1_X_REFOR
+			wSimilar->WK_NUMFAB := Substr(SB1T->B1_X_REFPR,1,15)
+			wSimilar->WK_NOMFAB := Substr(ZA8->ZA8_DESCRI,1,20)
+			wSimilar->WK_QUANT  := SB2->B2_QATU - SB2->B2_RESERVA
+			wSimilar->WK_PRV1   := Transform(&("SB0->B0_PRV" + cTabPad),"@E 999,999.99")
+			SB1T->(DbSkip())
+		Enddo
+		SB1T->(dbCloseArea())
+	Endif
+
+	wSimilar->(DbGotop())
+	Define Msdialog oDlgSimilar Title "Saldo Similares" From 96,5 to 410,820 Pixel
+	oMark:= MsSelect():New("wSimilar",,,aCampos,.F.,"",{35,1,(oDlgSimilar:nHeight-30)/2,(oDlgSimilar:nClientWidth-4)/2})
+	oMark:bAval:= {|| oDlgSimilar:End()}
+	bOk:= {|| oDlgSimilar:End()}
+	bCancel := {||oDlgSimilar:End()}
+	Activate Msdialog oDlgSimilar On Init EnchoiceBar(oDlgSimilar,bOk,bCancel) Centered
+	dbSelectArea("wSimilar")
+	dbCloseArea()
+	Ferase(cFile+GetDBExtension())
+	dbSelectArea(cAlias)
+	dbSetOrder(nOrd)
+return
+
+**************************************************************************************************************
+
+Static function Saldo(n_File, c_Codigo)
+	Local n_Ord   := SB1->(IndexOrd())
+	Local cAlias  := Alias()
+	Local nOrd    := dbSetOrder()
+	Local nReg    := Recno()
+	Local lRet    := .f.
+	Local aEmpresa:= {}
+	Local aStru   := {}
+	Local aCampos := {}
+	
+	Local oDlgSaldo,oFont3,bOk,bCancel
+	Local c_Cod,c_Desc,c_Serie,cFile,c_Aplic
+	
+	SetKey(VK_F5, bK_F5)
+	
+	aStru:= { {"WK_CODFIL", "C",  2,0},;
+	{"WK_FILIAL", "C", 15,0},;
+	{"WK_QATU"  , "N", 12,2} }
+	
+	aCampos:= { {"WK_FILIAL",, "Filial"},;
+	{"WK_QATU"  ,, "Saldo"} }
+	
+	cFile:= CriaTrab(aStru,.t.)
+	dbUseArea(.t.,,cFile,"wSaldo",.F.,.F.)
+	
+	Empresa(@aEmpresa)
+	
+	c_Cod:= Alltrim(c_Codigo)
+	
+	If Empty(c_cod)
+		Return
+	Endif
+	
+	dbSelectArea("SB1")
+	dbSetorder(1)
+	dbSeek(xFilial("SB1")+c_Cod)
+	
+	c_Desc := SB1->B1_DESC
+	c_Serie:= SB1->B1_X_CODFA
+	c_Aplic:= SB1->B1_X_APLIC
+	
+	dbSelectArea("SB2")
+	dbSetorder(1)
+	dbSeek(c_Cod)
+
+	cQry := "SELECT B2_FILIAL,SUM(B2_QATU) B2_QATU, SUM(B2_RESERVA) B2_RESERVA  "
+	cQry += "FROM "+RetSqlName("SB2")+" SB2 "
+	cQry += "WHERE SB2.D_E_L_E_T_ <> '*' "
+	cQry += "AND B2_COD = '"+c_Cod+"' "
+	cQry += "AND B2_LOCAL = '"+ALLTRIM(GETMV("MV_LOCPAD"))+"' "
+	cQry += "GROUP BY B2_FILIAL "
+
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,ChangeQuery(cQry)),"SB2T",.T.,.T.)
+	dbSelectArea("SB2T")		
+    if SB2T->(EOF()) .OR. SB2T->(BOF())
+        wSaldo->(dbAppend())
+		wSaldo->WK_CODFIL:= "00"
+		wSaldo->WK_FILIAL:= "00"
+		wSaldo->WK_QATU  := 0
+    Endif
+	while !SB2T->(EOF())
+		wSaldo->(dbAppend())
+		wSaldo->WK_CODFIL:= SB2T->B2_FILIAL
+		wSaldo->WK_FILIAL:= bscEmpresa(aEmpresa,SB2T->B2_FILIAL)
+		wSaldo->WK_QATU  := SB2T->B2_QATU - SB2T->B2_RESERVA
+		SB2T->(Dbskip())
+	Enddo
+	SB2T->(dbCloseArea())
+	
+	dbSelectArea("wSaldo")
+	wSaldo->(Dbgotop())
+	
+	Define Font oFnt3 Name "Ms Sans Serif" Bold
+	
+	Define msdialog oDlgSaldo Title "Consulta de saldos" From 96,5 to 400,400 Pixel
+	
+	@10,5 to 50,180 Of oDlgSaldo Pixel
+	
+	@15, 15 Say "Codigo:"  Size 35,8 Of oDlgSaldo Pixel Font oFnt3
+	@15, 50 Get c_Cod Picture "@!" Size 35,8 Pixel of oDlgSaldo when .F.
+	
+	@25, 15 Say "Cod.Fabr.:"  Size 35,8 Of oDlgSaldo Pixel Font oFnt3
+	@25, 50 Get c_Serie Picture "@!" Size 35,8 Pixel of oDlgSaldo when .F.
+	
+	@35, 15 Say "Descricao:"  Size 35,8 Of oDlgSaldo Pixel Font oFnt3
+	@35, 50 Get c_Desc Picture "@!" Size 100,8 Pixel of oDlgSaldo when .F.
+	
+	@45, 15 Say "Aplicação:"  Size 35,8 Of oDlgSaldo Pixel Font oFnt3
+	@45, 50 Get c_Aplic Picture "@!" Size 150,8 Pixel of oDlgSaldo when .F.
+	
+	oMark:= MsSelect():New("wSaldo",,,aCampos,.F.,,{65,1,(oDlgSaldo:nHeight-30)/2,(oDlgSaldo:nClientWidth-4)/2})
+	
+	bOk := {||lRet:= .t.,oDlgSaldo:End()}
+	bCancel := {||oDlgSaldo:End()}
+	
+	Activate msdialog oDlgSaldo On Init EnchoiceBar(oDlgSaldo,bOk,bCancel) Centered
+	
+	dbSelectArea("wSaldo")
+	dbCloseArea()
+	Ferase(cFile+GetDBExtension())
+	
+	SB1->(DbSetOrder(n_Ord))
+	
+	dbSelectArea(cAlias)
+	dbSetOrder(nOrd)
+	dbGoTo(nReg)
+	
+	Do case
+		Case n_File = 1
+			bK_F5:= SetKey(VK_F5,{|| Saldo(n_File, wNrFab->WK_COD)}) //Recursive function
+		Case n_File = 2
+			bK_F5:= SetKey(VK_F5,{|| Saldo(n_File, wCodigo->WK_COD)}) //Recursive function
+		Case n_File = 3
+			bK_F5:= SetKey(VK_F5,{|| Saldo(n_File, wSimil->WK_COD)}) //Recursive function
+		Case n_File = 4
+			bK_F5:= SetKey(VK_F5,{|| Saldo(n_File, wSimil2->WK_COD)}) //Recursive function
+		Case n_File = 5
+			bK_F5:= SetKey(VK_F5,{|| Saldo(n_File, wAplic->WK_COD)}) //Recursive function
+	EndCase
+Return
+
+Static function Empresa(aEmpresa)
+	Local n_Recno:= SM0->(Recno())
+	Local c_Codemp:= SM0->M0_CODIGO         
+	SM0->(Dbgotop())
+	Do while !SM0->(Eof())
+		If SM0->M0_CODIGO = c_Codemp
+			aadd(aEmpresa,{SM0->M0_CODFIL,SM0->M0_FILIAL})
+		Endif
+		SM0->(Dbskip())
+	Enddo
+	SM0->(Dbgoto(n_Recno))
+return .t.
+
+Static function bscEmpresa(aEmpresa,cFil)
+	nPos:= aScan(aEmpresa,{ |x| x[1]= cFil})
+return aEmpresa[nPos][2]
+
+
+****************************************************************************************
+
+Static Function f_AColsDet()
+Local nPosItem		:= aPosCpo[Ascan(aPosCpo,{|x| Alltrim(Upper(x[1])) == "LR_ITEM"})][2]		   		// Posicao do numero do item
+Local nPosProd		:= aPosCpo[Ascan(aPosCpo,{|x| Alltrim(Upper(x[1])) == "LR_PRODUTO"})][2]			// Posicao da codigo do produto
+Local nPosQuant		:= aPosCpo[Ascan(aPosCpo,{|x| Alltrim(Upper(x[1])) == "LR_QUANT"})][2]			// Posicao da Quantidade
+Local nPosVlUnit	:= aPosCpo[Ascan(aPosCpo,{|x| Alltrim(Upper(x[1])) == "LR_VRUNIT"})][2]			// Posicao do Valor unitario do item
+Local nPosVlItem	:= aPosCpo[Ascan(aPosCpo,{|x| Alltrim(Upper(x[1])) == "LR_VLRITEM"})][2]			// Posicao do Valor do item
+Local nPosValDesc	:= aPosCpo[Ascan(aPosCpo,{|x| Alltrim(Upper(x[1])) == "LR_VALDESC"})][2]			// Posicao do valor de desconto
+Local nPosDtItem	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_ITEM"})		// Posicao do numero do item
+Local nPosDtProd	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_PRODUTO"})	// Posicao do Codigo do produto
+Local nPosDtTes		:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_TES"})		// Posicao do Codigo do TES
+Local nPosDtCF		:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_CF"})			// Posicao do Codigo do CF 
+Local nPosDtBIcm	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_BASEICM"})	// Posicao da Base de ICM
+Local nPosDtVIcm	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_VALICM"})		// Posicao do Valor do ICM
+Local nPosDtVIpi	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_VALIPI" })	// Posicao do Valor do IPI
+Local nPosDtVIss 	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_VALISS" })	// Posicao do Valor do ISS
+Local nPosDtTabela	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_TABELA" })	// Posicao da Tabela de precos
+Local nPosDtDProp	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_DESCPRO" })	// Posicao do Desconto proporcional
+Local nPosDtPrcTab  := Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_PRCTAB"})		// Posicao do Preco de Tabela
+Local nPosDtFrete	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_VALFRE" })	// Posicao do Valor do frete do item
+Local nPosDtSeguro 	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_SEGURO"})		// Posicao do Valor do Seguro do item
+Local nPosDtDespesa	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_DESPESA"})	// Posicao do Valor das desepesas acessorias do item
+Local nPosDtReserva	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_RESERVA"})	// Posicao do codigo da reserva
+Local nPosDtLojaRes	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_LOJARES"})	// Posicao do Loja da reserva
+Local nPosDtOrcRes 	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_ORCRES" })	// Posicao do orcamento da reserva
+Local nPosDtEmpRes 	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_EMPRES" })	// Posicao do codigo da empresa da reserva
+Local nPosDtFilRes 	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_FILRES" })	// Posicao do codigo da filial da empresa da reserva
+Local nPosDtLocal  	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_LOCAL" })		// Posicao do local (armazem)
+Local nPosNSerie   	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_NSERIE" })	// Posicao do Numero de serie
+Local nPosLoteCTL  	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_LOTECTL" })	// Posicao do Sub Lotermazem)
+Local nPosNLote    	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_NLOTE" })		// Posicao do Lote            
+Local nPosLocaliz  	:= Ascan(aPosCpoDet,{|x| Alltrim(Upper(x[1])) == "LR_LOCALIZ"})	// Posicao do Localizacao    
+Local nPos			:= 0							  													// Auxiliar para localizacao em arrays
+Local cTesPad		:= ""																				// Codigo do Tes de saida
+Local cEstado 		:= SuperGetMv("MV_ESTADO")			       									   		// Identifica o estado da empresa//filial
+Local lLinOk        := .F.                 			   											   		// Identifica se a funcao foi chamada pela LINOK ou pela DELOK.
+Local nMoedaPrv		:= 0																		   		// Moeda da tabela de preco selecionada
+Local cTesSai		:= SuperGetMV("MV_TESSAI",,"501")											   		// Pega do parametro o TES padrao para saida
+
+//oGet:oBrowse:lDisablePaint := .F.
+//oGet:oBrowse:Refresh(.T.)
+      
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Posiona os arquivos para a rotina                                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+SB1->(dbSetOrder( 1 ))
+SB1->(DbSeek( xFilial("SB1") + aCols[n][nPosProd] ))
+
+SB0->(dbSetOrder( 1 ))
+SB0->(DbSeek( xFilial("SB0") + aCols[n][nPosProd] ))
+
+cTesPad := If( Empty( RetFldProd( SB1->B1_COD,"B1_TS" ) ), cTesSai, RetFldProd( SB1->B1_COD,"B1_TS" ) )
+SF4->(DbSeek(xFilial("SF4")+cTesPad))
+
+SA1->(dbSetOrder( 1 ))
+SA1->(DbSeek( xFilial("SA1") + M->LQ_CLIENTE + M->LQ_LOJA ))
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Verifica se o produto ja esta no array de detalhes                       ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+nPos := If( n>Len(aColsDet), nPos:=0, nPos:=n )
+If nPos == 0
+
+	aAdd( aColsDet, Array( Len(aHeaderDet)+1 ) )
+	nPos	:= Len( aColsDet )
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Quando for inclusao de um novo item chama a funcao MafisAdd              ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	MaFisAdd( aCols[n][nPosProd],;			// Produto
+				cTesPad,;					// Tes
+				aCols[n][nPosQuant],;		// Quantidade
+				aCols[n][nPosVlUnit],;		// Preco unitario
+				aCols[n][nPosValDesc],;		// Valor do desconto
+				"",; 						// Numero da NF original
+				"",; 						// Serie da NF original
+				0,;							// Recno da NF original
+				0,; 						// Valor do frete do item
+				0,; 						// Valor da despesa do item
+				0,; 						// Valor do seguro do item
+				0,; 						// Valor do frete autonomo
+				aCols[n][nPosVlItem] + aCols[n][nPosValDesc] ,;		// Valor da mercadoria
+				0 )							// Valor da embalagem			
+	
+Else
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Chama a funcao MaFisAlt quando for alteracao de algum produto.           ³
+	//³ Cuidado com a alteracao destas linhas pois afeta diretamente quando eh   ³
+	//³ utilizado descontos no item e total dos produtos                         ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+ 	If MaFisFound("IT",n)
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³A funcao Lj7TotImpsV() eh chamada nesse ponto para que o os impostos do produto anterior ³
+		//³sejam subtraidos do array com o total dos impostos variaveis...                          ³
+		//³A funcao InInCallStack verifica se a rotina Lj7Detalhe foi acionada a partir da troca de ³
+		//³tabela de precos (Lj7Tabela)                                                             ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If cPaisLoc <> "BRA" .AND.;
+			( (ReadVar() $ "M->LR_PRODUTO|M->LR_QUANT|M->LR_VRUNIT|M->LR_VLRITEM|M->LR_DESC|M->LR_VALDESC" .AND. Lj7T_DescV(2) == 0) .OR.;
+			IsInCallStack("LJ7TABELA") )
+		   	Lj7TotImpsV(n,4)
+		EndIf
+
+ 		If "LR_PRODUTO" $ ReadVar()
+			MaFisAlt("IT_PRODUTO"	,If("LR_PRODUTO"$ReadVar()	,If(!lLinOk,&(ReadVar()),aCols[n][nPosProd])	,aCols[n][nPosProd])	,n)
+		ElseIf "LR_QUANT" $ ReadVar()
+			MaFisAlt("IT_QUANT"		,If("LR_QUANT"	$ReadVar()	,If(!lLinOk,&(ReadVar()),aCols[n][nPosQuant])	,aCols[n][nPosQuant])	,n)
+		ElseIf "LR_VRUNIT" $ ReadVar()
+			MaFisAlt("IT_PRCUNI"	,If("LR_VRUNIT"	$ReadVar()	,If(!lLinOk,&(ReadVar()),aCols[n][nPosVlUnit]),aCols[n][nPosVlUnit])	,n)
+		ElseIF "LR_VALDESC" $ ReadVar()
+			aCols[n][nPosValDesc] := If(!lLinOk,&(ReadVar()),aCols[n][nPosValDesc])
+			MaFisAlt("IT_DESCONTO"	, aCols[n][nPosValDesc] ,n)
+		ElseIF "LR_DESC" $ ReadVar()
+			MaFisAlt("IT_DESCONTO"	, aCols[n][nPosValDesc], n)
+		Endif
+		If !("LR_VALDESC" $ ReadVar()) .AND. !("LR_DESC" $ ReadVar())
+			MaFisAlt("IT_DESCONTO", aCols[n][nPosValDesc], n)
+		Endif
+		MaFisAlt("IT_ALIQIPI",SB1->B1_IPI,n)
+		MaFisAlt("IT_PRCUNI",	If("LR_VLRITEM"$ReadVar(),If(!lLinOk,&(ReadVar()),aCols[n][nPosVlItem]+aCols[n][nPosValDesc]),aCols[n][nPosVlItem]+aCols[n][nPosValDesc]),n)
+		MaFisAlt("IT_TES",	 	If("LR_PRODUTO"$ReadVar(),cTesPad,aColsDet[nPos][nPosDtTes]),n)
+		MaFisAlt("IT_VALMERC",	If("LR_VLRITEM"$ReadVar(),If(!lLinOk,&(ReadVar()),aCols[n][nPosVlItem]+aCols[n][nPosValDesc]),aCols[n][nPosVlItem]+aCols[n][nPosValDesc]),n)
+	Endif
+  
+Endif
+
+aColsDet[nPos][nPosDtItem] 	    := aCols[n][nPosItem]
+aColsDet[nPos][nPosDtProd] 	    := aCols[n][nPosProd]
+aColsDet[nPos][nPosDtTes]	 	:= If(Empty(aColsDet[nPos][nPosDtTes]),cTesPad,IIf("LR_PRODUTO" $ ReadVar(),cTesPad,aColsDet[nPos][nPosDtTes]))
+aColsDet[nPos][nPosDtCF]		:= If(MaFisFound("IT",n),MaFisRet(n,"IT_CF"),aColsDet[nPos][nPosDtCF])
+If cPaisLoc == "BRA"
+   aColsDet[nPos][nPosDtVIpi]		:= If(MaFisFound("IT",n),MaFisRet(n,"IT_VALIPI"),Nil)
+   If MaFisFound("IT",n)
+	  If MaFisRet(n,"IT_VALISS") > 0
+		 aColsDet[nPos][nPosDtBIcm]	:= MaFisRet(n,"IT_BASEISS")
+		 aColsDet[nPos][nPosDtVIcm]	:= MaFisRet(n,"IT_VALISS")
+	  Else
+		 aColsDet[nPos][nPosDtBIcm]	:= MaFisRet(n,"IT_BASEICM")
+		 aColsDet[nPos][nPosDtVIcm]	:= MaFisRet(n,"IT_VALICM")
+	  Endif
+   Endif   
+   aColsDet[nPos][nPosDtVIss]		:= If(MaFisFound("IT",n),MaFisRet(n,"IT_VALISS"),Nil)
+EndIf   
+aColsDet[nPos][nPosDtTabela]	:= cTabPad
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Faz a busca do Armazem somente quando se digita o codigo³
+//³do produto.                                             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+//If ( "M->LR_PRODUTO" $ Readvar())
+	aColsDet[nPos][nPosDtLocal]	    := RetFldProd(SB1->B1_COD,"B1_LOCPAD") 
+//EndIf                        
+
+aColsDet[nPos][nPosDtDProp]	    := 0 //*** Implementar o desconto proporcional
+If SB0->(FieldPos("B0_MOEDA" + cTabPad)) > 0
+	nMoedaPrv := Max(&("SB0->B0_MOEDA" + cTabPad),1)
+	aColsDet[nPos][nPosDtPrcTab]	:= Round(xMoeda(&("SB0->B0_PRV" + cTabPad),nMoedaPrv,nMoedaCor,dDataBase,nDecimais+1,,nTxMoeda),nDecimais)
+Else
+	aColsDet[nPos][nPosDtPrcTab]	:= SB0->&("B0_PRV"+cTabPad)
+Endif
+
+If aColsDet[nPos][Len(aColsDet[nPos])] == NIL
+   aColsDet[nPos][Len(aColsDet[nPos])] := .F.
+EndIf   
+aColsDet[nPos][nPosDtFrete]	    := If(MaFisFound("IT",n),MaFisRet(n,"IT_FRETE"),Nil)
+aColsDet[nPos][nPosDtSeguro]	:= If(MaFisFound("IT",n),MaFisRet(n,"IT_SEGURO"),Nil)
+aColsDet[nPos][nPosDtDespesa]	:= If(MaFisFound("IT",n),MaFisRet(n,"IT_DESPESA"),Nil)
+aColsDet[nPos][nPosDtReserva]	:= If(Empty(aColsDet[nPos][nPosDtReserva]),Space(TamSx3("L2_RESERVA")[1]),aColsDet[nPos][nPosDtReserva])
+aColsDet[nPos][nPosDtLojaRes]	:= If(Empty(aColsDet[nPos][nPosDtLojaRes]),Space(TamSx3("L2_LOJARES")[1]),aColsDet[nPos][nPosDtLojaRes])
+aColsDet[nPos][nPosDtOrcRes]	:= If(Empty(aColsDet[nPos][nPosDtOrcRes]),Space(TamSx3("L2_ORCRES")[1]),aColsDet[nPos][nPosDtOrcRes])
+aColsDet[nPos][nPosDtFilRes]	:= If(Empty(aColsDet[nPos][nPosDtFilRes]),Space(TamSx3("L2_FILRES")[1]),aColsDet[nPos][nPosDtFilRes])
+aColsDet[nPos][nPosDtEmpRes]	:= If(Empty(aColsDet[nPos][nPosDtEmpRes]),Space(TamSx3("L2_EMPRES")[1]),aColsDet[nPos][nPosDtEmpRes])
+
+//Campos da aColsDet que sao alterados durante o processamento
+aColsDet[nPos][nPosNSerie]		:= If( Empty(aColsDet[nPos][nPosNSerie]),Space(TamSx3("L2_NSERIE")[1]),aColsDet[nPos][nPosNSerie])
+aColsDet[nPos][nPosLoteCTL]	    := If( Empty(aColsDet[nPos][nPosLoteCTL]),Space(TamSx3("L2_LOTECTL")[1]),aColsDet[nPos][nPosLoteCTL])
+aColsDet[nPos][nPosNLote]		:= If( Empty(aColsDet[nPos][nPosNLote]),Space(TamSx3("L2_NLOTE")[1]),aColsDet[nPos][nPosNLote])
+aColsDet[nPos][nPosLocaliz]	    := If( Empty(aColsDet[nPos][nPosLocaliz]),Space(TamSx3("L2_LOCALIZ")[1]),aColsDet[nPos][nPosLocaliz])
+
+// Valoriza os campos de impostos no aColsDet e atualiza interface com o usuario...
+/*If lCalcImpsV .AND. cPaisLoc <> "BRA" .AND. !aTail(aCols[nPos])
+	Lj7RecalImp(nPos,3)
+EndIf*/
+
+Return
+
+**************************************************************************************************************************************************
+//Venda perdida
+Static function Vd_Perdida(cCodPro)
+	Local cAlias := Alias()
+	Local nOrd   := dbSetOrder()
+	Local aStru  := {}
+	Local aCampos:= {}
+	Local cFile                
+	Local a_Opc    :={"SALDO","PRECO","OUTROS"}
+	Private c_Motivo := ""
+	Private c_Obs    := space(255)
+	Private _cUsuario := Upper(SubStr(cUsuario, 7, 15))
+	
+	aStru:= { {"WK_CODIGO", "C", 15,0},;
+	{"WK_REF" , "C", 15,0},;
+	{"WK_DESC" , "C", 60,0},;
+	{"WK_QUANT"  , "N", 12,2},;
+	{"WK_PRV1"   , "N", 12,2}}
+	
+	aCampos:= { {"WK_CODIGO",, "Codigo"},;
+	{"WK_REF" ,, "Referencia"},;
+	{"WK_DESC" ,, "Descricao"},;
+	{"WK_QUANT"  ,, "Quant."},;
+	{"WK_PRV1"   ,, "Venda"} }
+	
+	cFile:= CriaTrab(aStru,.T.)
+	dbUseArea(.t.,,cFile,"wVPerdida",.F.,.F.)
+	
+	dbSelectArea("SB0")
+	dbSetorder(1)
+	
+	dbSelectArea("SB2")
+	dbSetorder(1)
+	
+	//- Similar 1
+	If !Empty(cCodPro)
+		
+		dbSelectArea("SB1")
+		dbSetOrder(1)
+		
+		cCodPro:= Alltrim(cCodPro)
+		
+		cQry := "SELECT * "
+		cQry += "FROM "+RetSqlName("SB1")+" SB1 "
+		cQry += "WHERE SB1.D_E_L_E_T_ <> '*' "
+		cQry += "  AND B1_FILIAL = '"+xFilial("SB1")+"' "
+		cQry += "  AND B1_COD = '"+cCodPro+"' "
+		cQry += "ORDER BY B1_FILIAL "
+		
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,ChangeQuery(cQry)),"SB1T",.T.,.T.)
+		dbSelectArea("SB1T")
+		
+		if !SB1T->(EOF())
+			//-> Saldo fisico e financeiro
+			SB2->(Dbseek(xFilial("SB2") + SB1T->B1_COD + ALLTRIM(GETMV("MV_LOCPAD"))))
+			
+			//-> Preço de venda
+			SB0->(Dbseek(xFilial("SB0") + SB1T->B1_COD))
+			      
+			wVPerdida->(DbAppend())
+			wVPerdida->WK_CODIGO := SB1T->B1_COD
+			wVPerdida->WK_REF    := Substr(SB1T->B1_X_REFPR,1,15)
+			wVPerdida->WK_DESC   := Substr(SB1T->B1_DESC,1,60)
+			wVPerdida->WK_QUANT  := SB2->B2_QATU - SB2->B2_RESERVA
+			wVPerdida->WK_PRV1   := &("SB0->B0_PRV" + cTabPad)
+			SB1T->(DbSkip())
+		Endif
+		SB1T->(dbCloseArea())
+	Endif
+
+	wVPerdida->(DbGotop())
+	Define Msdialog oDlgVPerdida Title "Cadastro de Venda Perdida" From 96,5 to 410,820 Pixel
+	
+	@015, 130 Say "Cadastro de Venda Perdida"  Of oDlgVPerdida Pixel Font oFnt4 COLORS 16711680,16777215
+	
+	@040, 15 Say "Motivo da Perda:"  Of oDlgVPerdida Pixel Font oFnt3
+	@40,070 ComboBox c_Motivo Items a_Opc Size 050,008 Pixel of oDlgVPerdida	
+	
+	@055, 15 Say "Obs:"  Size 35,8 Of oDlgVPerdida Pixel Font oFnt3
+	@055, 30 Get c_Obs Picture "@!" Size 300,8 Pixel of oDlgVPerdida
+	
+	oMark:= MsSelect():New("wVPerdida",,,aCampos,.F.,"",{70,1,(oDlgVPerdida:nHeight-30)/2,(oDlgVPerdida:nClientWidth-4)/2})
+	//oMark:bAval:= {|| oDlgVPerdida:End()}
+	bOk:= {|| GravaVDPerd(),oDlgVPerdida:End()}
+	bCancel := {||oDlgVPerdida:End()}
+	Activate Msdialog oDlgVPerdida On Init EnchoiceBar(oDlgVPerdida,bOk,bCancel) Centered
+	dbSelectArea("wVPerdida")
+	dbCloseArea()
+	Ferase(cFile+GetDBExtension())
+	dbSelectArea(cAlias)
+	dbSetOrder(nOrd)
+return
+
+*****************************************************
+
+Static Function GravaVDPerd()
+
+wVPerdida->(DbGotop())
+  
+  RecLock( "SZH", .T. )
+    SZH->SZH_FILIAL := xFilial("SL1")
+    SZH->SZH_COD    := wVPerdida->WK_CODIGO
+    SZH->SZH_REFPR  := wVPerdida->WK_REF
+    SZH->SZH_DESC   := wVPerdida->WK_DESC
+    SZH->SZH_SALDO  := wVPerdida->WK_QUANT
+    SZH->SZH_PRCVEN := wVPerdida->WK_PRV1
+    SZH->SZH_DATA   := DDATABASE
+    SZH->SZH_HORA   := TIME()
+    SZH->SZH_VEND   := _cUsuario
+    SZH->SZH_MOTIVO := c_Motivo
+    SZH->SZH_OBS    := c_Obs
+  msUnlock()
+
+Return

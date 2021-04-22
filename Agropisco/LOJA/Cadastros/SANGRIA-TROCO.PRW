@@ -1,0 +1,161 @@
+#include "rwmake.ch"
+/*_________________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------+-------------+-------+---------------------+------+---------------+¦¦
+¦¦¦ Função    ¦ Supriment   ¦ Autor ¦ Reinaldo Magalhaes  ¦ Data ¦ 12/07/2007    ¦¦¦
+¦¦+-----------+-------------+-------+---------------------+------+---------------+¦¦
+¦¦¦ Descriçäo ¦ Sangria e Fundo de Troco                                         ¦¦¦
+¦¦+-----------+------------------------------------------------------------------+¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯*/
+User Function Supriment()
+
+//DbSelectArea("SE5")
+//DbSetOrder(1)
+  U_MsSetOrder("SE5","E5_FILIAL+DTOS(E5_DATA)+E5_BANCO+E5_AGENCIA+E5_CONTA+E5_NUMCHEQ")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima                   
+
+//DbSelectArea("SA6")
+//DbSetOrder(1)
+  U_MsSetOrder("SA6","A6_FILIAL+A6_COD+A6_AGENCIA+A6_NUMCON")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima                   
+         
+//DbSelectArea("SED")
+//DbSetOrder(1)
+  U_MsSetOrder("SED","ED_FILIAL+ED_CODIGO")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima                   
+         
+//DbSelectArea("SE8")
+//DBSetOrder(1)
+  U_MsSetOrder("SE8","E8_FILIAL+E8_BANCO+E8_AGENCIA+E8_CONTA+DTOS(E8_DTSALAT)")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima                   
+  
+//dbSelectArea("SE1")
+//dbSetOrder(6)
+  U_MsSetOrder("SE1","E1_FILIAL+DTOS(E1_EMISSAO)+E1_NOMCLI+E1_PREFIXO+E1_NUM+E1_PARCELA")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima                   
+         
+  cOpcao   := "R$"
+  cNat     := Space(10)
+  nValor   := nTroco := nSangria := nVenMod := 0
+  cBanco   := Space(03)
+  cAgencia := Space(05)
+  cConta   := Space(10) 
+  cHist    := Space(40)
+
+  aReturn   := { "Especial", 1,"Administracao", 1, 2, 1, "",1 }
+
+  @ 50,80   TO 373,560 Dialog oDlg TITLE "INFORME A MODALIDADE"
+  @ 08,14   SAY "Data : "+ DTOC(dDataBase)
+  @ 08,250  SAY "Hora : "+ Time()
+  @ 08,080  SAY "AGROPISCO"
+  @ 28,010  SAY "Natureza : "
+  @ 28,105  GET cNat  F3 "SED" Valid(TRIM(cNat)$"SANGRIA#TROCO")
+  @ 48,010  SAY "Caixa : "
+  @ 48,105  GET cBanco F3 "SA6" Valid(!Empty(cBanco))
+  @ 48,140  GET cAgencia
+  @ 48,180  GET cConta
+  @ 68,010  SAY "Historico : "
+  @ 68,105  GET cHist SIZE 50,30 Pict "@!"  
+  @ 88,010  SAY "Valor : "
+  @ 88,105  GET nValor SIZE 50,30 Pict "999,999,999.99" Valid(nValor > 0)
+  @ 130,80  BMPBUTTON TYPE 1 ACTION Close(oDlg)
+  @ 130,130 BMPBUTTON TYPE 2 ACTION Close(oDlg)
+  Activate Dialog oDlg
+
+  If TRIM(cNat) == "SANGRIA" .and. nValor > 0 
+     RecLock("SE5",.T.)
+     SE5->E5_Filial := xFilial()
+     SE5->E5_Data   := dDataBase
+     Se5->E5_Tipo   := cOpcao
+     SE5->E5_Valor  := nValor
+     SE5->E5_RecPag := "P"
+     SE5->E5_Banco  := cBanco
+     SE5->E5_Agencia:= cAgencia
+     Se5->E5_Conta  := cConta
+     SE5->E5_Vencto := dDataBase
+     SE5->E5_Moeda  := "M1"
+     SE5->E5_NATUREZ:= cNat
+     SE5->E5_HISTOR := cHist
+     SE5->E5_DtDigit:= dDataBase
+     SE5->E5_DtDispo:= dDataBase
+     SE5->(MsUnLock())
+		
+     If SE8->(DBSeek(xFilial()+cBanco+cAgencia+cConta))
+        RecLock("SE8")
+     Else
+   	    RecLock("SE8",.T.)
+	    SE8->E8_BANCO   := cBanco
+	    SE8->E8_AGENCIA := cAgencia
+	    SE8->E8_CONTA   := cConta
+	    SE8->E8_DTSALAT := dDatabase
+     EndIf
+     SE8->E8_Salatua := SE8->E8_Salatua - nValor
+     SE8->(MsUnLock())
+     
+  	 cValor := StrZero(nValor,14,2)
+		
+	 /***************************************************************************************************
+	 Totalizar Cupom Não Fiscal // Poderiam ser colocados como Parâmetros para evitar alteração no mesmo 
+	 ***************************************************************************************************/
+	 If cOpcao == "R$"
+	    cNumero := "01"
+		cDescricao := "-SANGRIA DINHEI"
+	 Elseif cOpcao == "CC"
+		cNumero := "03"
+		cDescricao := "-SANGRIA CARTAO"
+	 Elseif cOpcao == "CH"
+		cNumero := "07"
+		cDescricao := "-SANGRIA CHEQUE"
+	 EndIf
+		
+	 /********************************************************************************
+	 Retirada de Suprimento
+	 **********************************************************************************/
+	 ALERT("SANGRIA")
+	 
+	 cPagto:= cNumero 
+	 cTotal:= '29'  
+	 nTipo := 3
+	 nRet := IFSupr( nHdlECF, nTipo, cValor, cPagto , cTotal)
+		
+	 /********************************************************************************
+	 Fechamento do Cupom Não Fiscal
+	 **********************************************************************************/
+	 nRet := IFFchCNFis( nHdlECF )
+		
+  ElseIf TRIM(cNat) == "TROCO" .and. nValor > 0 //- Entradas no caixa
+     RecLock("SE5",.T.)
+     SE5->E5_Filial := xFilial()
+     SE5->E5_Data   := dDataBase
+     Se5->E5_Tipo   := cOpcao
+     SE5->E5_Valor  := nValor
+     SE5->E5_RecPag := "R"
+     SE5->E5_Banco  := cBanco
+     SE5->E5_Agencia:= cAgencia
+     Se5->E5_Conta  := cConta
+     SE5->E5_Vencto := dDataBase 
+     SE5->E5_TipoDoc:= ""
+     SE5->E5_Moeda  := "M1"
+     SE5->E5_DtDigit:= dDataBase
+     SE5->E5_DtDispo:= dDataBase   
+     SE5->E5_NATUREZ:= cNat
+     SE5->E5_HISTOR := cHist     
+     SE5->(MsUnLock())
+	
+     If SE8->(DBSeek(xFilial()+cBanco+cAgencia+cConta))
+        RecLock("SE8")
+     Else
+   	    RecLock("SE8",.T.)
+	    SE8->E8_BANCO   := cBanco
+	    SE8->E8_AGENCIA := cAgencia
+	    SE8->E8_CONTA   := cConta
+	    SE8->E8_DTSALAT := dDatabase
+     EndIf
+     SE8->E8_Salatua := SE8->E8_Salatua + nValor
+     SE8->(MsUnLock())
+	
+	 ALERT("TROCO")
+
+     cValor := StrZero(nValor,14,2)
+
+     //- Lanca entrada no caixa na impressora fiscal.
+     nRet := IFSupr( nHdlECF, 2, cValor, '', '' )
+	
+EndIf
+Return .T.

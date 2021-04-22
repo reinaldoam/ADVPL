@@ -1,0 +1,64 @@
+#INCLUDE "rwmake.ch" 
+
+//
+// Ponto de entrada para estornar a sangria de operações diferentes de dinheiro no fechamento automático do caixa.
+//
+ 
+User Function LJ7067
+  Local cCaixa 	  := xNumCaixa() 											               //- Numero do caixa logado
+  Local cNumMov	  := AllTrim(LjNumMov())								                   //- Retorno o numero do movimento atual
+  Local nTamCod   := TamSX3("A6_COD")[1]								                   //- Tamanho do campo A6_COD
+  Local nTamAg    := TamSX3("A6_AGENCIA")[1]							                   //- Tamanho do campo A6_AGENCIA
+  Local nTamConta := TamSX3("A6_NUMCON")[1]							                       //- Tamanho do campo A6_NUMCON
+  Local cCodBanco := Substr(SuperGetMV("MV_CXLOJA",.F.,""),1,nTamCod)                      //- Codigo do banco		
+  Local cCodAgen  := Substr(SuperGetMV("MV_CXLOJA",.F.,""),nTamCod + 2,nTamAg)             //- Codigo do agencia
+  Local cNumCon   := Substr(SuperGetMV("MV_CXLOJA",.F.,""),nTamCod + nTamAg + 3,nTamConta) //- Numero do conta	
+  Local nRecnoSE5 := SE5->(Recno())
+  Local nValor   := 0
+  Local nSangria := 0
+
+  //- Soma total da sangria
+  cQry1 := "SELECT ISNULL(SUM(E5_VALOR),0)SANGRIA FROM "+RetSQLName("SE5")
+  cQry1 += " WHERE E5_DATA = '"+Dtos(dDatabase)+"' "                                                    
+  cQry1 += " AND E5_RECPAG = 'R' AND E5_TIPODOC = 'TR' AND E5_MOEDA IN('CH','CC','CD','FI','CO','VA','OU') "
+  cQry1 += " AND E5_SITUACA <> 'C' "
+  cQry1 += " AND E5_NATUREZ = 'SANGRIA' "
+  cQry1 += " AND E5_HISTOR LIKE '%"+cCaixa+"%' "
+  cQry1 += " AND D_E_L_E_T_ <> '*' "
+  cQry1 += " AND E5_BANCO = '"+cCodBanco+"' "
+  cQry1 += " AND E5_AGENCIA = '"+cCodAgen+"' "    
+  cQry1 += " AND E5_CONTA = '"+cNumCon+"' "
+  
+  dbUseArea( .T., "TOPCONN", TcGenQry(,,CHANGEQUERY(cQry1)), "TRB", .T., .F. )  
+  
+  nSangria := TRB->SANGRIA
+  TRB->(dbCloseArea())
+
+  DbSelectArea("SE5")
+  
+  If nSangria > 0
+     //- Gravando movimento para anular a entrada no caixa CX1
+     Reclock("SE5",.T.)
+	 SE5->E5_FILIAL	:= xFilial("SE5")    
+	 SE5->E5_DATA	:= dDatabase
+	 SE5->E5_MOEDA	:= "NC"
+	 SE5->E5_VALOR	:= nSangria
+	 SE5->E5_NATUREZ:= "AJUSTE"
+	 SE5->E5_BANCO	:= cCodBanco
+	 SE5->E5_AGENCIA:= cCodAgen
+	 SE5->E5_CONTA	:= cNumCon
+ 	 SE5->E5_VENCTO	:= dDataBase
+	 SE5->E5_RECPAG	:= "P"
+	 SE5->E5_BENEF	:= "AJUSTE SANGRIA CAIXA"
+	 SE5->E5_HISTOR	:= "AJUSTE SANGRIA CAIXA"
+	 SE5->E5_DTDIGIT := dDataBase
+     SE5->E5_RATEIO  := "N"	 
+   	 SE5->E5_DTDISPO := dDataBase
+	 SE5->E5_FILORIG := xFilial("SE5")           
+     SE5->E5_CODORCA := ""     	 
+     SE5->E5_E5_IDMOVI:= GetSXEnum("SE5","E5_IDMOVI")
+	 SE5->(MsUnLock())
+     //- Atualiza saldo bancário
+     AtuSalBco(SE5->E5_BANCO,SE5->E5_AGENCIA,SE5->E5_CONTA,SE5->E5_DATA,SE5->E5_VALOR,"-")
+  Endif  
+Return

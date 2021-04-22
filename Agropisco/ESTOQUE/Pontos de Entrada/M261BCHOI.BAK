@@ -1,0 +1,105 @@
+#INCLUDE "Protheus.ch"
+/*_______________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------+------------+-------+----------------------+------+------------+¦¦
+¦¦¦ Programa  ¦ MA261BCHOI ¦ Autor ¦ Williams Messa       ¦ Data ¦ 03/05/2007 ¦¦¦
+¦¦+-----------+------------+-------+----------------------+------+------------+¦¦
+¦¦¦ Descriçäo ¦ Ponto de Entrada para captura dos sub-itens da Os para realizar¦¦
+¦¦¦           ¦ as tranferencias para de estoque entre Estoque x Ass.Tecnica   ¦¦
+¦¦+-----------+---------------------------------------------------------------+¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯*/
+User Function M261BCHOI( )
+Local aButtons :={}
+if INCLUI
+	aAdd(aButtons,{ 'LOCALIZA', { || PAROS() }, OemtoAnsi('Ordem de Serviços')})
+EndIf
+
+Return(aButtons)
+/*_______________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------+------------+-------+----------------------+------+------------+¦¦
+¦¦¦ Programa  ¦ PAROS      ¦ Autor ¦ Williams Messa       ¦ Data ¦ 03/05/2007 ¦¦¦
+¦¦+-----------+------------+-------+----------------------+------+------------+¦¦
+¦¦¦ Descriçäo ¦ Tela para informação do nro da Ordem de Serviço                ¦¦
+¦¦+-----------+---------------------------------------------------------------+¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯*/
+Static Function PAROS()
+
+Local cnroos := Space(06)
+
+DEFINE MSDIALOG oDlg TITLE "Informe o Nro.Da OS" From 10,40 To 20,70 //OF oMainWnd
+
+//@ 005,006 TO 070,120 PIXEL OF oDlg
+@ 015,020 SAY "Digite o Nro.OS:" SIZE 70,7 PIXEL OF oDlg
+@ 025,020 MSGET cnroos  F3 "AB6" SIZE 60,7 PIXEL OF oDlg Valid !Empty(cnroos)
+
+DEFINE SBUTTON FROM 60,050 TYPE 1 ACTION (nopc := 1,Processa({||GetOs(cnroos)},"Processando...")) ENABLE OF oDlg
+DEFINE SBUTTON FROM 60,085 TYPE 2 ACTION (nopc := 0,oDlg:End()) ENABLE OF oDlg 
+	 
+ACTIVATE MSDIALOG oDlg //ON INIT EnchoiceBar(oDlg,{||nOpcA:=1,Iif(Mod2TudOk(),oDlg:End(),nOpcA:=0)},{||oDlg:End()})
+
+Return
+/*_______________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------+------------+-------+----------------------+------+------------+¦¦
+¦¦¦ Programa  ¦ GetOs      ¦ Autor ¦ Williams Messa       ¦ Data ¦ 03/05/2007 ¦¦¦
+¦¦+-----------+------------+-------+----------------------+------+------------+¦¦
+¦¦¦ Descriçäo ¦ Ponto de Entrada para captura dos sub-itens da Os para realizar¦¦
+¦¦¦           ¦ as tranferencias para de estoque entre Estoque x Ass.Tecnica   ¦¦
+¦¦+-----------+---------------------------------------------------------------+¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯*/
+Static Function GetOs(cordem)
+
+Local cQry:=""
+
+oDlg:End()
+dbCloseArea("TRE")
+
+cQry := "SELECT AB8_NUMOS,AB8_ITEM,AB8_SUBITE,AB8_CODPRO,AB8_DESPRO,B1_UM,AB8_LOCAL,AB8_QUANT FROM AB8010 A "
+cQry += "INNER JOIN SB1010 B ON AB8_CODPRO = B1_COD "
+cQry += "WHERE A.D_E_L_E_T_ ='' AND B.D_E_L_E_T_ ='' AND AB8_NUMOS ='"+cordem+"' AND AB8_ITEM ='01' AND AB8_CODSER != '000001' "
+cQry += "AND AB8_NRODOC =''
+cQry += "ORDER BY AB8_NUMOS,AB8_ITEM,AB8_SUBITE,AB8_CODPRO"
+dbUseArea( .T., "TOPCONN", TcGenQry(,,CHANGEQUERY(cQry)), "TRE", .T., .F. )
+dbSelectArea("TRE")
+dbGoTop()
+If BOF()
+Alert("Não existem apontamentos para realizar transeferencia!")
+Else
+	While !EOF()
+		  aAdd(aCols,{TRE->AB8_CODPRO,;//CODIGO DO PRODUTO     1
+		              TRE->AB8_DESPRO,;//DESCRICAO DO PRODUTO  2
+		              TRE->B1_UM     ,;//UNIDADE DE MEDIDA     3
+		              TRE->AB8_LOCAL ,;//ARMAZEM               4
+		              Space(15)      ,;//ENDEREÇO              5
+		              TRE->AB8_CODPRO,;//PRODUTO DESTINO       6
+		              TRE->AB8_DESPRO,;//DESCRICAO DESTINO     7
+		              TRE->B1_UM     ,;//UNIDADE DESTINO       8
+		              "01"           ,;//ARMAZEM DESTINO - ASSISTENCIA TECNICA 9
+		              Space(15)      ,;//ENDEREÇO DESTINO      10
+		              ""             ,;//NRO DE SERIE          11
+		              ""             ,;//LOTE                  12
+		              ""             ,;//SUB-LOTE              13
+		              DDATABASE      ,;//DATA DA VALIDADE      14
+		              0              ,;//POTENCIA              15
+		              TRE->AB8_QUANT ,;//QUANTIDADE            16
+		              0              ,;//QUANTIDADE 2 UM       17
+		              ""             ,;//ESTORNADO             18
+		              ""             ,;//SEQUENCIA             19
+		              ""             ,;//LOTE DESTINO          20
+		              AVCTOD("//")   ,;//DATA DA VALIDADE      21
+		              cordem         ,;//Nro.Da.OS             22
+		              .F.})             //LOGICO               23
+		              
+	  dbSkip()
+	EndDo
+	ADEL(aCols,1)
+    ASIZE(aCols,Len(aCols)-1)
+EndIf
+
+dbCloseArea("TRE")
+
+Return

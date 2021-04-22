@@ -1,0 +1,52 @@
+/*_______________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------+------------+-------+----------------------+------+------------+¦¦
+¦¦¦ Programa  ¦ MA261BCHOI ¦ Autor ¦ Williams Messa       ¦ Data ¦ 03/05/2007 ¦¦¦
+¦¦+-----------+------------+-------+----------------------+------+------------+¦¦
+¦¦¦ Descriçäo ¦ Ponto de Entrada para captura dos sub-itens da Os para realizar¦¦
+¦¦¦           ¦ as tranferencias para de estoque entre Estoque x Ass.Tecnica   ¦¦
+¦¦+-----------+---------------------------------------------------------------+¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯*/
+User Function MA261BCHOI( )
+
+	Local aButtons :=  { 'LOCALIZA', { || PAROS() }, OemtoAnsi('Ordem de Serviços')}
+
+Return(aButtons)
+/*_______________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------+------------+-------+----------------------+------+------------+¦¦
+¦¦¦ Programa  ¦ PAROS      ¦ Autor ¦ Williams Messa       ¦ Data ¦ 03/05/2007 ¦¦¦
+¦¦+-----------+------------+-------+----------------------+------+------------+¦¦
+¦¦¦ Descriçäo ¦ Ponto de Entrada para captura dos sub-itens da Os para realizar¦¦
+¦¦¦           ¦ as tranferencias para de estoque entre Estoque x Ass.Tecnica   ¦¦
+¦¦+-----------+---------------------------------------------------------------+¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯*/
+Static Function PAROS()
+
+DEFINE MSDIALOG oDlg TITLE "Formacao de Preco" From 10,40 To 30,90 //OF oMainWnd
+
+@ 15, 16 TO 140,180 LABEL "Informacoes de Venda (%)" PIXEL OF oDlg
+                  	
+@ 025, 020 SAY "Comissao        :" SIZE 70,7 PIXEL OF oDlg
+@ 040, 020 SAY "Transporte      :" SIZE 70,7 PIXEL OF oDlg
+@ 055, 020 SAY "Enc. Financeiros:" SIZE 70,7 PIXEL OF oDlg
+@ 070, 020 SAY "ICMS s/ Vendas  :" SIZE 70,7 PIXEL OF oDlg
+@ 085, 020 SAY "IR              :" SIZE 70,7 PIXEL OF oDlg
+@ 100, 020 SAY "Margem de Lucro :" SIZE 70,7 PIXEL OF oDlg
+
+@ 025, 070 MSGET nPerComis  PICTURE "@E 999.99"  SIZE 60,7 PIXEL OF oDlg
+@ 040, 070 MSGET nPerTrans  PICTURE "@E 999.99"  SIZE 60,7 PIXEL OF oDlg
+@ 055, 070 MSGET nPerEncFin PICTURE "@E 999.99"  SIZE 60,7 PIXEL OF oDlg
+@ 070, 070 MSGET nPerIcms   PICTURE "@E 999.99"  SIZE 60,7 PIXEL OF oDlg
+@ 085, 070 MSGET nPerIr     PICTURE "@E 999.99"  SIZE 60,7 PIXEL OF oDlg
+@ 100, 070 MSGET nPerLucro  PICTURE "@E 999.99"  SIZE 60,7 PIXEL OF oDlg
+
+//oGet := MSGetDados():New(41,2,130,315,nOpcX,"u_Mod2LinOk()","u_Mod2TudOk()","+Z3_ITEM",.T.)
+DEFINE SBUTTON FROM 120,090 TYPE 1 ACTION (nopc := 1,Processa({||AGPDIVP01A()},"Processando...")) ENABLE OF oDlg
+DEFINE SBUTTON FROM 120,120 TYPE 2 ACTION (nopc := 0,oDlg:End()) ENABLE OF oDlg 
+	 
+ACTIVATE MSDIALOG oDlg //ON INIT EnchoiceBar(oDlg,{||nOpcA:=1,Iif(Mod2TudOk(),oDlg:End(),nOpcA:=0)},{||oDlg:End()})
+
+Return

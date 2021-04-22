@@ -1,0 +1,51 @@
+#include "rwmake.ch"
+User Function FRTFUNCOES()
+  Local nPosSangria,nPosTroco,nPosGaveta,nPosCancCup
+  Local aFuncao:= {}                   
+  nPosCancCup:= AScan(ParamIxb, {|x| x[1] == "03"}) //- Cancelamento de cupom
+  nPosSangria:= AScan(ParamIxb, {|x| x[1] == "05"}) //- Sangria
+  nPosTroco  := AScan(ParamIxb, {|x| x[1] == "06"}) //- Troco
+  nPosGaveta := AScan(ParamIxb, {|x| x[1] == "12"}) //- Abre gaveta
+  ParamIxb[nPosCancCup][3]:= "U_CancCup()" 
+  ParamIxb[nPosSangria][3]:= "U_Sangria()" 
+  ParamIxb[nPosTroco][3]  := "U_Troco()" 
+  ParamIxb[nPosGaveta][3] := "U_AbreGaveta()" 
+Return(PARAMIXB)                 
+
+////////////////////////
+User Function CancCup()
+  Local lPass,lRet:= .T.
+  lPass:= U_ChkSuper("Cancelamento Cupom") //- Solicita senha da supervisora de caixa.
+  If lPass
+     lret:= FrtCancCup() //- Cancelamento do cupom fiscal
+  Endif      
+Return lRet 
+
+///////////////////////////
+User Function Sangria()
+  Local lPass,lRet
+  lPass:= U_ChkSuper("Sangria") //- Solicita senha da supervisora de caixa.
+  If lPass
+     Frta050(1) //- Sangria
+  Endif      
+Return
+
+//////////////////////
+User Function Troco()
+  Local lPass
+  lPass:= U_ChkSuper("Troco") //- Solicita senha da supervisora de caixa.
+  If lPass
+     Frta050(2) //- Fundo de troco
+  Endif      
+Return
+
+///////////////////////////
+User Function AbreGaveta()
+  Local lPass,lRet
+  lPass:= U_ChkSuper("Abrir Gaveta") //- Solicita senha da supervisora de caixa.
+  If lPass
+     If LjProfile(13) .and. !Empty(LJGetStation('GAVETA'))
+        lRet:= IFGaveta(nHdlECF)
+     Endif
+  Endif   
+Return lRet

@@ -1,0 +1,2361 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TBICONN.CH"
+#INCLUDE "TECA400.CH"
+
+
+#DEFINE	 CADASTRO STR0001 //"Or‡amentos"
+#DEFINE NUMITENS 300
+
+Static cPictureTot		//Picture dos campos de Totais do rodape da tela
+Static oDlg				//Objeto dialog principal
+Static oSay1			//Obj. Say do Total geral 
+Static oSay2			//Obj. Say do Total cliente
+Static oSay3			//Obj. Say do Total fabricante 
+
+/*/
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡„o    ³ TECA400  ³ Autor ³ Eduardo Riera         ³ Data ³ 30.09.98  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡„o ³ Programa de atualizacao dos Or‡amentos                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe   ³ Void TECA400(void)                                          ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Uso       ³ Generico                                                    ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ ATUALIZACOES SOFRIDAS DESDE A CONSTRUCAO INICIAL.                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ PROGRAMADOR  ³ DATA   ³ BOPS ³  MOTIVO DA ALTERACAO                    ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Aline C.Vale  ³01/06/99³Prothe³Ver chamada para controle de botoes      ³±± 
+±±³Andrea Farias ³20/06/05³811   ³BOPS 83192 - Alterada expressao logica do³±± 
+±±³              ³        ³      ³9. parametro da Mbrowse.                 ³±± 
+±±³Cleber M.     ³12/04/06³96040 ³Inclusao de legenda na rotina.           ³±± 
+±±³Cleber M.     ³09/06/06³98346 ³Localizacao do mod. SIGATEC.             ³±± 
+±±³Conrado Q.    ³18/10/06³110586³Posiciona o SA1 para consulta padrao do  ³±±
+±±³              ³        ³      ³campo AB4_CODPROD nas rotinas de altera  ³±± 
+±±³              ³        ³      ³cao, visualizacao, exclusao e efetivacao.³±± 
+±±³Cleber M.     ³23/11/06³113603³Alteracao para permitir tambem incluir   ³±± 
+±±³              ³        ³      ³ate 300 itens no Apont. do Orcamento(AB5)³±± 
+±±³Conrado Q.    ³28/11/06³102284³Criação do P.E. para adição de rotinas no³±± 
+±±³              ³        ³      ³aRotinas.                                ³±± 
+±±³Conrado Q.    ³26/04/07³124187³Inclusão do ponto de entrada AT400Fil    ³±± 
+±±³              ³        ³      ³para filtrar os registros exibidos.      ³±± 
+±±ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Function TECA400( cRotina, xAutoCab, xAutoItens, xAutoApont, nOpcAuto )
+
+Local aRotAdic		:= {}						// Botoes adicionais da janela
+Local lAT400ROT		:= ExistBlock("AT400ROT")	// P.E. Utilizado para adicionar botoes a janela
+Local nX			:= 0						// Utilizado em loop
+Local cAt400Fil		:= ""						// Filtro fornecido pelo ponto de entrada
+Local bFiltraBrw	:= {||}						// Bloco de código para execução do filtro
+Local aIndexAB3		:= {}						// Indice do AB3
+Local cFiltraAB3	:= ""						// Filtro utilizado no bloco de código executado para ativar o filtro
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Define Array contendo as Rotinas a executar do programa      ³
+//³ ----------- Elementos contidos por dimensao ------------     ³
+//³ 1. Nome a aparecer no cabecalho                              ³
+//³ 2. Nome da Rotina associada                                  ³
+//³ 3. Usado pela rotina                                         ³
+//³ 4. Tipo de Transa‡„o a ser efetuada                          ³
+//³    1 - Pesquisa e Posiciona em um Banco de Dados             ³
+//³    2 - Simplesmente Mostra os Campos                         ³
+//³    3 - Inclui registros no Bancos de Dados                   ³
+//³    4 - Altera o registro corrente                            ³
+//³    5 - Remove o registro corrente do Banco de Dados          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Private aRotina 	:= {	{STR0002,"AxPesqui"  , 0 , 1 },;		//"Pesquisar"
+							{STR0003,"AT400Visua", 0 , 2 },;		//"Visualizar"
+							{STR0004,"AT400Inclu", 0 , 3 },;		//"Incluir"
+							{STR0005,"AT400Alter", 0 , 4 },;		//"Alterar"
+							{STR0006,"AT400Exclu", 0 , 5 },;		//"Exclui"
+							{STR0007,"At400Efet" , 0 , 4 },;  		//"eFetivar"
+							{STR0025,"MsDocument", 0 , 4 },;    	//"Conhecimento"
+							{STR0030,"At400Leg"  , 0 , 2} } 		//"Legenda" 
+							
+Private cCadastro 	:= CADASTRO					// Nome da janela
+Private cRoda     	:= ""						// Bloco de código quando não é rotina automática
+Private aAutoCab	:= {}						// Cabeçalho automático
+Private aAutoItens	:= {}						// Itens automáticos
+Private aAutoApont	:= {}						// Apontamentos automáticos
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ P.E. Utilizado para adicionar botoes a janela ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If lAT400ROT
+	aRotAdic := ExecBlock("AT400ROT",.F.,.F.)
+	If ValType(aRotAdic) == "A"
+		For nX := 1 to LEN(aRotAdic)
+	      If LEN(aRotAdic[nX]) == 4
+	         AADD(aRotina,aRotAdic[nX])
+	      Endif
+		Next nX	
+	EndIf
+EndIf
+
+dbSelectArea("AB3")
+
+If	xAutoCab != Nil .And. xAutoItens != NIL
+	PRIVATE lAt400Auto := .T.
+
+	aAutoCab  := xAutoCab
+	aAutoItens:= xAutoItens
+	aAutoApont:= xAutoApont
+	
+	Default aAutoApont:= {}	
+
+	MBrowseAuto(nOpcAuto,Aclone(aAutoCab),"AB3")
+
+ElseIf ( AMIIn(28) )
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Verifica a existencia de Filtros na mBrowse                  ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	AB3->(dbSetOrder(1))			
+	If (ExistBlock("AT400FIL"))
+		cAt400Fil := ExecBlock("AT400FIL",.F.,.F.)
+		If ( ValType(cAt400Fil) == "C" ) .And. !Empty(cAt400Fil)
+			cFiltraAB3 := cAt400Fil
+		EndIf
+		bFiltraBrw 	:= {|| FilBrowse("AB3",@aIndexAB3,@cFiltraAB3) }
+		Eval(bFiltraBrw)
+	EndIf
+
+    If ValType( cRotina ) == "C"
+   		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Faz tratamento para chamada por outra rotina             ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		cRotina := Upper( cRotina ) 
+		If !Empty( nScan := AScan( aRotina, { |x| Upper( x[2] ) == cRotina } ) ) 
+			cRoda := cRotina + "( 'AB3', AB3->( Recno() ), " + Str(nScan,2) + " )" 
+			xRet  := Eval( { || &( cRoda ) } ) 
+		EndIf 
+	Else
+		dbSetOrder(1)
+		DbSeek(xFilial())
+		mBrowse( 6, 1,22,75,"AB3",,,,"AB3_STATUS=='A'")
+	EndIf 
+EndIf
+dbSelectArea("AB3")
+dbSetOrder(1)
+Return(.T.)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³AT400Inclu³ Autor ³ Eduardo Riera         ³ Data ³30.09.98  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Programa de Inclusao de Or‡amentos                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe e ³ Void AT400Inclu(ExpC1,ExpN1,ExpN2)                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ ExpC1 = Alias do arquivo                                   ³±±
+±±³          ³ ExpN1 = Numero do registro                                 ³±±
+±±³          ³ ExpN2 = Opcao selecionada                                  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ TECA400                                                    ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Function AT400Inclu(cAlias,nReg,nOpcx)
+
+Local nUsado  	:= 0
+Local nPosItem	:= 0
+Local nOpcA   	:= 0
+Local aArea   	:= { Alias(), IndexOrd() , Recno() }
+Local uCampo	:= ""
+Local oGetD
+Local aObjects	:= {} 
+Local aPosObj 	:= {} 
+Local aSizeAut	:= {}
+Local aPosGet 	:= {} 
+Local nSaveSX8	:= GetSX8Len()
+Local nCntFor 	:= 0
+Local n1		:= 0				//Total Geral
+Local n2     	:= 0				//Total Cliente
+Local n3 		:= 0				//Total Fabricante
+
+If ExistBlock("AT400INC")
+	Execblock("AT400INC",.F.,.F.)
+Endif
+
+Private aTela[0][0],aGets[0]
+Private aHeader:= {} , aHeaderAB5 := {} , aHeaderAB4 := {}
+Private aCols	:= {} , aColsAB5 := {}
+Private nOpcF4 := nOpcX
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Inicializa as Variaveis da Enchoice                          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea("SX3")
+dbSetOrder(1)
+DbSeek("AB3")
+While ( !Eof() .And. SX3->X3_ARQUIVO == "AB3" )
+	uCampo := SX3->X3_CAMPO
+ 	M->&(uCampo) := CriaVar(uCampo,.T.)
+  	dbSelectArea("SX3")	
+	dbSkip()
+End
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta aHeader                                                ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+AT400Monta()
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta aCols                                                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+aHeader 	:= aClone(aHeaderAB4)
+nUsado 	:= Len(aHeader)
+nPosItem	:= aScan(aHeaderAB4,{|x| AllTrim(x[2])=="AB4_ITEM"})
+aadd(aCols,Array(nUsado+1))
+For nCntFor := 1 To nUsado
+	aCols[1][nCntFor] := CriaVar(aHeader[nCntFor][2])
+Next nCntFor
+aCols[1][nPosItem] := "01"
+aCols[1][nUsado+1] := .F.
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Atualiza picture ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cPictureTot	:= PesqPict("AB5","AB5_TOTAL",14,M->AB3_MOEDA) 
+
+If Type("lAt400Auto")=="U" .Or. !lAt400Auto
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Habilita a Tecla F4                                          ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	SetKey(VK_F4,{||AT400F4(oGetD)})
+	
+	aSizeAut := MsAdvSize( .T. ) 
+	aObjects := {}             
+	
+	AAdd( aObjects, { 315,  70, .T., .t. } )
+	AAdd( aObjects, { 100, 100, .t., .t. } )
+	AAdd( aObjects, { 100,   8, .t., .f. } )
+	
+	aInfo := { aSizeAut[ 1 ], aSizeAut[ 2 ], aSizeAut[ 3 ], aSizeAut[ 4 ], 3, 3 } 
+	
+	aPosObj := MsObjSize( aInfo, aObjects ) 
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Monta tela de entrada                                                   ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	DEFINE MSDIALOG oDlg TITLE CADASTRO FROM aSizeAut[7],0 TO aSizeAut[6],aSizeAut[5] PIXEL 
+	
+	EnChoice( "AB3" ,nReg,nOpcx,,,,,aPosObj[1])
+	oGetD := MsGetDados():New(aPosObj[2,1],aPosObj[2,2],aPosObj[2,3],aPosObj[2,4],nOpcx,"AT400LinOk","AT400TudOk","+AB4_ITEM",.T.,,,,NUMITENS)
+	                            
+	aPosGet := MsObjGetPos(aSizeAut[3]-aSizeAut[1],315,;
+			{{005,072,115,178,223,287}} )
+	
+	nLinIni := aPosObj[3,1]
+	
+	@ nLinIni,aPosGet[1,1] SAY STR0008 SIZE 60,09 OF oDlg PIXEL //"Total: "
+	@ nLinIni,aPosGet[1,2] SAY oSay1 VAR Transform(n1, cPictureTot) SIZE 40,09 OF oDlg PIXEL
+	@ nLinIni,aPosGet[1,3] SAY STR0009 SIZE 60,09 OF oDlg PIXEL //"Total do Cliente: "
+	@ nLinIni,aPosGet[1,4] SAY oSay2 VAR Transform(n2, cPictureTot) SIZE 40,09 OF oDlg PIXEL 
+	@ nLinIni,aPosGet[1,5] SAY STR0010 SIZE 60,09 OF oDlg PIXEL //"Total do Fabricante: "
+	@ nLinIni,aPosGet[1,6] SAY oSay3 VAR Transform(n3, cPictureTot) SIZE 40,09 OF oDlg PIXEL 
+	oDlg:Cargo  := {|n1,n2,n3| oSay1:SetText( Transform(n1,cPictureTot) ),;
+								oSay2:SetText( Transform(n2,cPictureTot) ),;
+								oSay3:SetText( Transform(n3,cPictureTot) ) }
+	At400Total(oDlg,.F.)
+	ACTIVATE MSDIALOG oDlg ON INIT At400Bar(oDlg,{||nOpca:=1,if(oGetD:TudoOk().And.Obrigatorio(aGets,aTela),oDlg:End(),nOpca:=0)},{||oDlg:End()},nOpcX,oGetD)
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Desabilita a Tecla F4                                        ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	SetKey(VK_F4,Nil)
+Else
+	If EnchAuto(cAlias,aAutoCab,{|| Obrigatorio(aGets,aTela)}) .And.;
+		MsGetDAuto(aAutoItens,"AT400LinOk",{|| AT400TudOk() },aAutoCab,aRotina[nOpcX][4]) .And. At400F4()
+		nOpcA := 1
+	EndIf
+EndIf
+
+If ( nOpcA == 1 )
+	Begin Transaction
+		If ( AT400Grava(1) )
+			EvalTrigger()
+			While ( GetSX8Len() > nSaveSx8 )
+				ConfirmSX8()
+			End
+		EndIf
+	End Transaction
+EndIf
+While ( GetSX8Len() > nSaveSx8 )
+	RollBackSX8()
+End
+
+dbSelectArea(aArea[1])
+dbSetOrder(aArea[2])
+dbGoto(aArea[3])
+Return(.T.)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³At400Visua³ Autor ³ Eduardo Riera         ³ Data ³30.09.98  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Programa de Visualizacao de Or‡amentos                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe e ³ Void At400Visua(ExpC1,ExpN1,ExpN2)                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ ExpC1 = Alias do arquivo                                   ³±±
+±±³          ³ ExpN1 = Numero do registro                                 ³±±
+±±³          ³ ExpN2 = Opcao selecionada                                  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ TECA400                                                    ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Function AT400Visua(cAlias,nReg,nOpcx)
+
+//Local oDlg
+Local nUsado  	:= 0
+Local nCntFor2	:= 0
+Local nOpcA   	:= 0
+Local aArea	  	:= { Alias(), IndexOrd() , Recno() }
+Local uCampo	:= ""
+Local aAux		:= {}
+Local nPosItem	:= 0
+Local oGetD
+
+Local aObjects	:= {} 
+Local aPosObj 	:= {} 
+Local aSizeAut	:= {}
+Local aPosGet 	:= {}
+Local nCntFor	:= 0
+Local n1		:= 0				//Total Geral
+Local n2     	:= 0				//Total Cliente
+Local n3 		:= 0				//Total Fabricante
+
+If ExistBlock("AT400VIS")
+	Execblock("AT400VIS",.F.,.F.)
+Endif
+
+Private aTela[0][0],aGets[0]
+Private aHeader:= {} , aHeaderAB5 := {} , aHeaderAB4 := {}
+Private aCols	:= {} , aColsAB5 := {}
+Private nOpcF4 := nOpcX
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Posiciona o SA1 para consulta do AB4_CODPROD³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+SA1->(DbSetOrder(1))
+SA1->(DbSeek(xFilial("SA1") + AB3->AB3_CODCLI + AB3->AB3_LOJA))
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Inicializa as Variaveis da Enchoice                          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea("SX3")
+dbSetOrder(1)
+DbSeek("AB3")
+While ( !Eof() .And. SX3->X3_ARQUIVO == "AB3" )
+	uCampo := SX3->X3_CAMPO
+	If ( SX3->X3_CONTEXT == "V" )
+		M->&(uCampo) := CriaVar(uCampo,.T.)
+	Else
+		M->&(uCampo) := AB3->(FieldGet(FieldPos(uCampo)))
+	EndIf
+   dbSelectArea("SX3")	
+	dbSkip()
+End
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta aHeader                                                ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+AT400Monta()
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta aCols                                                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+aHeader 	:= aClone(aHeaderAB4)
+nUsado 	:= Len(aHeader)
+nPosItem	:= aScan(aHeaderAB5,{|x| AllTrim(x[2])=="AB5_SUBITE"})
+dbSelectArea("AB4")
+dbSetOrder(1)
+DbSeek(xFilial("AB4")+AB3->AB3_NUMORC)
+While ( !Eof() .And. xFilial("AB4") 	== AB4->AB4_FILIAL .And.;
+							AB3->AB3_NUMORC	== AB4->AB4_NUMORC )
+	aadd(aCols,Array(nUsado))
+   For nCntFor := 1 To nUsado
+		If ( aHeader[nCntFor][10] != "V" )
+			aCols[Len(aCols)][nCntFor] := FieldGet(FieldPos(aHeader[nCntFor][2]))
+		Else
+			aCols[Len(aCols)][nCntFor] := CriaVar(aHeader[nCntFor][2])
+		EndIf
+	Next nCntFor
+	aAux := {}
+	dbSelectArea("AB5")
+	dbSetOrder(1)
+	If ( DbSeek(xFilial("AB5")+AB3->AB3_NUMORC+AB4->AB4_ITEM) )
+      While ( !Eof() .And. xFilial("AB5") == AB5->AB5_FILIAL .And.;
+									M->AB3_NUMORC	== AB5->AB5_NUMORC .And.;
+									AB4->AB4_ITEM== AB5->AB5_ITEM )
+			aadd(aAux,Array(Len(aHeaderAB5)+1))
+			For nCntFor := 1 To Len(aHeaderAB5)
+				If ( aHeaderAB5[nCntFor][10] != "V" )
+					aAux[Len(aAux)][nCntFor] := FieldGet(FieldPos(aHeaderAB5[nCntFor][2]))
+				Else
+					aAux[Len(aAux)][nCntFor] := CriaVar(aHeaderAB5[nCntFor][2])
+				EndIf
+			Next nCntFor
+			aAux[Len(aAux)][Len(aHeaderAB5)+1] := .F.
+         dbSelectArea("AB5")
+			dbSkip()					
+		End
+		aadd(aColsAB5,aClone(aAux))
+	Else
+		aadd(aAux,Array(Len(aHeaderAB5)+1))
+		For nCntFor := 1 To Len(aHeaderAB5)
+			aAux[Len(aAux)][nCntFor] := CriaVar(aHeaderAB5[nCntFor][2])
+		Next nCntFor
+		aAux[Len(aAux)][nPosItem] := "01"
+		aAux[Len(aAux)][Len(aHeaderAB5)+1] := .F.
+		aadd(aColsAB5,aClone(aAux))
+	EndIf
+	dbSelectArea("AB4")
+	dbSkip()					
+End
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Habilita a Tecla F4                                          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+SetKey(VK_F4,{||AT400F4(oGetD)})
+                      
+aSizeAut := MsAdvSize( .T. )                                       
+aObjects := {} 
+AAdd( aObjects, { 315,  70, .T., .t. } )
+AAdd( aObjects, { 100, 100, .t., .t. } )
+AAdd( aObjects, { 100,   8, .t., .f. } )
+
+aInfo := { aSizeAut[ 1 ], aSizeAut[ 2 ], aSizeAut[ 3 ], aSizeAut[ 4 ], 3, 3 } 
+
+aPosObj := MsObjSize( aInfo, aObjects ) 
+    
+aPosGet := MsObjGetPos(aSizeAut[3]-aSizeAut[1],315,;
+		{{005,072,115,178,223,287}} )
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Atualiza picture ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cPictureTot	:= PesqPict("AB5","AB5_TOTAL",14,M->AB3_MOEDA) 
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Monta tela de entrada                                                   ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+DEFINE MSDIALOG oDlg TITLE CADASTRO FROM aSizeAut[7],0 TO aSizeAut[6],aSizeAut[5] PIXEL 
+
+EnChoice( "AB3" ,nReg,nOpcx,,,,,APOSOBJ[1],,3,,,,,,.T.)
+oGetD := MsGetDados():New(aPosObj[2,1],aPosObj[2,2],aPosObj[2,3],aPosObj[2,4],nOpcx,"AT400LinOk","AT400TudOk","+AB4_ITEM",.F.)
+
+nLinIni := aPosObj[3,1] 
+
+@ nLinIni,aPosGet[1,1] SAY STR0008 SIZE 60,09 OF oDlg PIXEL //"Total: "
+@ nLinIni,aPosGet[1,2] SAY oSay1 VAR Transform(n1, cPictureTot) SIZE 40,09 OF oDlg PIXEL 
+@ nLinIni,aPosGet[1,3] SAY STR0009 SIZE 60,09 OF oDlg PIXEL //"Total do Cliente: "
+@ nLinIni,aPosGet[1,4] SAY oSay2 VAR Transform(n2, cPictureTot) SIZE 40,09 OF oDlg PIXEL 
+@ nLinIni,aPosGet[1,5] SAY STR0010 SIZE 60,09 OF oDlg PIXEL //"Total do Fabricante: "
+@ nLinIni,aPosGet[1,6] SAY oSay3 VAR Transform(n3, cPictureTot) SIZE 40,09 OF oDlg PIXEL 
+oDlg:Cargo  := {|n1,n2,n3| oSay1:SetText( Transform(n1, cPictureTot) ),;
+							oSay2:SetText( Transform(n2, cPictureTot) ),;
+							oSay3:SetText( Transform(n3, cPictureTot) ) }
+At400Total(oDlg,.F.)
+ACTIVATE MSDIALOG oDlg ON INIT At400Bar(oDlg,{||oDlg:End()},{||oDlg:End()},nOpcX,oGetD)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Desabilita a Tecla F4                                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+SetKey(VK_F4,Nil)
+dbSelectArea(aArea[1])
+dbSetOrder(aArea[2])
+dbGoto(aArea[3])
+Return(.T.)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³At400Alter³ Autor ³ Eduardo Riera         ³ Data ³30.09.98  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Programa de Alteracao de Or‡amentos                        ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe e ³ Void At400Alter(ExpC1,ExpN1,ExpN2)                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ ExpC1 = Alias do arquivo                                   ³±±
+±±³          ³ ExpN1 = Numero do registro                                 ³±±
+±±³          ³ ExpN2 = Opcao selecionada                                  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ TECA400                                                    ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Function AT400Alter(cAlias,nReg,nOpcx)
+
+//Local oDlg
+Local nUsado  	:= 0
+Local nCntFor2 	:= 0
+Local nOpcA   	:= 0
+Local aArea   	:= { Alias(), IndexOrd() , Recno() }
+Local uCampo	:= ""
+Local aAux		:= {}
+Local aTravas 	:= {}
+Local lTravas 	:= .T.
+Local nPosItem	:= 0
+Local lAltera	:= .T.
+Local oGetD
+
+Local aObjects	:= {} 
+Local aPosObj 	:= {} 
+Local aSizeAut	:= {}
+Local aPosGet 	:= {}
+Local nSaveSX8	:= GetSX8Len()
+Local nCntFor 	:= 0
+Local n1		:= 0				//Total Geral
+Local n2     	:= 0				//Total Cliente
+Local n3 		:= 0				//Total Fabricante
+
+If ExistBlock("AT400ALT")
+	Execblock("AT400ALT",.F.,.F.)
+Endif
+
+Private aTela[0][0],aGets[0]
+Private aHeader:= {} , aHeaderAB5 := {} , aHeaderAB4 := {}
+Private aCols	:= {} , aColsAB5 := {}
+Private nOpcF4 := nOpcX
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Posiciona o SA1 para consulta do AB4_CODPROD³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+SA1->(DbSetOrder(1))
+SA1->(DbSeek(xFilial("SA1") + AB3->AB3_CODCLI + AB3->AB3_LOJA))
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Inicializa as Variaveis da Enchoice                          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea("SX3")
+dbSetOrder(1)
+DbSeek("AB3")
+While ( !Eof() .And. SX3->X3_ARQUIVO == "AB3" )
+	uCampo := SX3->X3_CAMPO
+	If ( SX3->X3_CONTEXT == "V" )
+		M->&(uCampo) := CriaVar(uCampo,.T.)
+	Else
+		M->&(uCampo) := AB3->(FieldGet(FieldPos(uCampo)))
+	EndIf
+   dbSelectArea("SX3")	
+	dbSkip()
+End
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Trava Registros                                                         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If ( SoftLock("AB3") )
+	aadd(aTravas,{ Alias() , RecNo() })
+Else
+	lTravas := .F.
+Endif
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta aHeader                                                ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+AT400Monta()
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta aCols                                                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+aHeader 	:= aClone(aHeaderAB4)
+nUsado 	:= Len(aHeader)
+nPosItem	:= aScan(aHeaderAB4,{|x| AllTrim(x[2])=="AB4_ITEM"})
+dbSelectArea("AB4")
+dbSetOrder(1)
+DbSeek(xFilial("AB4")+AB3->AB3_NUMORC)
+While ( !Eof() .And. xFilial("AB4") 	== AB4->AB4_FILIAL .And.;
+							AB3->AB3_NUMORC	== AB4->AB4_NUMORC )
+	If ( SoftLock("AB4") )
+		aadd(aTravas, { Alias() , RecNo() })
+	Else
+		lTravas := .F.
+	EndIf
+	aadd(aCols,Array(nUsado+1))
+	For nCntFor := 1 To nUsado
+		If ( aHeader[nCntFor][10] != "V" )
+			aCols[Len(aCols)][nCntFor] := FieldGet(FieldPos(aHeader[nCntFor][2]))
+		Else
+			aCols[Len(aCols)][nCntFor] := CriaVar(aHeader[nCntFor][2])
+		EndIf
+	Next nCntFor
+	aCols[Len(aCols)][nUsado+1] := .F.
+	aAux := {}
+	dbSelectArea("AB5")
+	dbSetOrder(1)
+	If ( DbSeek(xFilial("AB5")+AB3->AB3_NUMORC+AB4->AB4_ITEM) )
+      While ( !Eof() .And. xFilial("AB5") == AB5->AB5_FILIAL .And.;
+									M->AB3_NUMORC	== AB5->AB5_NUMORC .And.;
+									AB4->AB4_ITEM	== AB5->AB5_ITEM )
+			If ( SoftLock("AB5") )
+				aadd(aTravas, { Alias() , RecNo() })
+			Else
+				lTravas := .F.
+			EndIf
+			aadd(aAux,Array(Len(aHeaderAB5)+1))
+			For nCntFor := 1 To Len(aHeaderAB5)
+				If ( aHeaderAB5[nCntFor][10] != "V" )
+					aAux[Len(aAux)][nCntFor] := FieldGet(FieldPos(aHeaderAB5[nCntFor][2]))
+				Else
+					aAux[Len(aAux)][nCntFor] := CriaVar(aHeaderAB5[nCntFor][2])
+				EndIf
+			Next nCntFor
+			aAux[Len(aAux)][Len(aHeaderAB5)+1] := .F.
+			dbSelectArea("AB5")
+			dbSkip()					
+		End
+		aadd(aColsAB5,aClone(aAux))
+	Else
+		aadd(aAux,Array(Len(aHeaderAB5)+1))
+		For nCntFor := 1 To Len(aHeaderAB5)
+			aAux[Len(aAux)][nCntFor] := CriaVar(aHeaderAB5[nCntFor][2])
+		Next nCntFor
+		aAux[Len(aAux)][nPosItem] := "01"
+		aAux[Len(aAux)][Len(aHeaderAB5)+1] := .F.
+		aadd(aColsAB5,aClone(aAux))
+	EndIf
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Aqui eh verificado se o item esta amarrado a alguma OS que foi baixada.³
+	//³ Quando isto acontece a alteracao nao eh permitida.                     ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	dbSelectArea("AB7")
+	dbSetOrder(1)
+	If ( !Empty(AB4->AB4_NUMOS) .And. DbSeek(xFilial("AB7")+AB4->AB4_NUMOS) )
+      If ( AB7->AB7_TIPO!="1" )
+			If ( lAltera )
+				Help(" ",1,"AT400TIPOS")
+			EndIf
+			lAltera := .F.
+		EndIf
+   EndIf
+	dbSelectArea("AB4")
+	dbSkip()					
+End
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Atualiza picture ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cPictureTot	:= PesqPict("AB5","AB5_TOTAL",14,M->AB3_MOEDA) 
+
+If ( lTravas .And. lAltera)
+	If Type("lAt400Auto")=="U" .Or. !lAt400Auto
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Habilita a Tecla F4                                          ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		SetKey(VK_F4,{||AT400F4(oGetD)})
+                         
+		aSizeAut := MsAdvSize( .T. ) 
+		aObjects := {}                       
+		AAdd( aObjects, { 315,  70, .T., .t. } )
+		AAdd( aObjects, { 100, 100, .t., .t. } )
+		AAdd( aObjects, { 100,   8, .t., .f. } )
+		
+		aInfo := { aSizeAut[ 1 ], aSizeAut[ 2 ], aSizeAut[ 3 ], aSizeAut[ 4 ], 3, 3 } 
+		
+		aPosObj := MsObjSize( aInfo, aObjects ) 
+		
+		aPosGet := MsObjGetPos(aSizeAut[3]-aSizeAut[1],315,;
+			{{005,072,115,178,223,287}} )
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Monta tela de entrada                                                   ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		DEFINE MSDIALOG oDlg TITLE CADASTRO FROM aSizeAut[7],0 TO aSizeAut[6],aSizeAut[5] PIXEL 
+		EnChoice( "AB3" ,nReg,nOpcx,,,,,APOSOBJ[1],,3,,,,,,.T.)
+		oGetD := MsGetDados():New(aPosObj[2,1],aPosObj[2,2],aPosObj[2,3],aPosObj[2,4],nOpcx,"AT400LinOk","AT400TudOk","+AB4_ITEM",.T.,,,,NUMITENS)
+		
+		nLinIni := aPosObj[3,1]
+		
+		@ nLinIni,aPosGet[1,1] SAY STR0008 SIZE 60,09 OF oDlg PIXEL //"Total: "
+		@ nLinIni,aPosGet[1,2] SAY oSay1 VAR Transform(n1, cPictureTot) SIZE 40,09 OF oDlg PIXEL 
+		@ nLinIni,aPosGet[1,3] SAY STR0009 SIZE 60,09 OF oDlg PIXEL //"Total do Cliente: "
+		@ nLinIni,aPosGet[1,4] SAY oSay2 VAR Transform(n2, cPictureTot) SIZE 40,09 OF oDlg PIXEL 
+		@ nLinIni,aPosGet[1,5] SAY STR0010 SIZE 60,09 OF oDlg PIXEL //"Total do Fabricante: "
+		@ nLinIni,aPosGet[1,6] SAY oSay3 VAR Transform(n3, cPictureTot) SIZE 40,09 OF oDlg PIXEL 
+		oDlg:Cargo  := {|n1,n2,n3| oSay1:SetText( Transform(n1, cPictureTot) ),;
+									oSay2:SetText( Transform(n2, cPictureTot) ),;
+									oSay3:SetText( Transform(n3, cPictureTot) ) }
+		At400Total(oDlg,.F.)
+		ACTIVATE MSDIALOG oDlg ON INIT At400Bar(oDlg,{||nOpca:=1,if(oGetD:TudoOk().And.Obrigatorio(aGets,aTela),oDlg:End(),nOpca:=0)},{||oDlg:End()},nOpcX,oGetD)
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Desabilita a Tecla F4                                        ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		SetKey(VK_F4,Nil)
+	Else
+		If EnchAuto(cAlias,aAutoCab,{|| Obrigatorio(aGets,aTela)}) .And.;
+			MsGetDAuto(aAutoItens,"AT400LinOk",{|| AT400TudOk() },aAutoCab,aRotina[nOpcX][4]) .And. At400F4()
+			nOpcA := 1
+		EndIf
+	EndIf
+EndIf
+If ( nOpcA == 1 )
+	Begin Transaction
+		If ( AT400Grava(2)  )
+			EvalTrigger()
+			While ( GetSX8Len() > nSaveSx8 )
+				ConfirmSX8()
+			End
+		EndIf
+	End Transaction
+EndIf
+While ( GetSX8Len() > nSaveSx8 )
+	RollBackSX8()
+End
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Destrava os registros                                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+For nCntFor := 1 To Len(aTravas)
+	dbSelectArea(aTravas[nCntFor,1])
+	dbGoto(aTravas[nCntFor,2])
+	MsUnLock()
+Next nCntFor
+
+dbSelectArea(aArea[1])
+dbSetOrder(aArea[2])
+dbGoto(aArea[3])
+Return(.T.)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³At400Exclu³ Autor ³ Eduardo Riera         ³ Data ³30.09.98  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Programa de Exclusao  de Or‡amentos                        ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe e ³ Void At400Exclu(ExpC1,ExpN1,ExpN2)                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ ExpC1 = Alias do arquivo                                   ³±±
+±±³          ³ ExpN1 = Numero do registro                                 ³±±
+±±³          ³ ExpN2 = Opcao selecionada                                  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ TECA400                                                    ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Function AT400Exclu(cAlias,nReg,nOpcx)
+
+//Local oDlg
+Local nUsado  	:= 0
+Local nCntFor2	:= 0
+Local nOpcA  	:= 0
+Local aArea   	:= { Alias(), IndexOrd() , Recno() }
+Local uCampo	:= ""
+Local aAux		:= {}
+Local aTravas 	:= {}
+Local lTravas 	:= .T.
+Local nPosItem	:= 0
+Local lExclui	:= .T.
+Local oGetD
+
+Local aObjects	:= {} 
+Local aPosObj 	:= {} 
+Local aSizeAut	:= {}
+Local aPosGet 	:= {}
+Local nSaveSX8	:= GetSX8Len()
+Local nCntFor 	:= 0
+Local n1		:= 0				//Total Geral
+Local n2     	:= 0				//Total Cliente
+Local n3 		:= 0				//Total Fabricante
+
+If ExistBlock("AT400EXC")
+	Execblock("AT400EXC",.F.,.F.)
+Endif
+
+Private aTela[0][0],aGets[0]
+Private aHeader:= {} , aHeaderAB5 := {} , aHeaderAB4 := {}
+Private aCols	:= {} , aColsAB5 := {}
+Private nOpcF4 := nOpcX
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Posiciona o SA1 para consulta do AB4_CODPROD³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+SA1->(DbSetOrder(1))
+SA1->(DbSeek(xFilial("SA1") + AB3->AB3_CODCLI + AB3->AB3_LOJA))
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Inicializa as Variaveis da Enchoice                          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea("SX3")
+dbSetOrder(1)
+DbSeek("AB3")
+While ( !Eof() .And. SX3->X3_ARQUIVO == "AB3" )
+	uCampo := SX3->X3_CAMPO
+	If ( SX3->X3_CONTEXT == "V" )
+		M->&(uCampo) := CriaVar(uCampo,.T.)
+	Else
+		M->&(uCampo) := AB3->(FieldGet(FieldPos(uCampo)))
+	EndIf
+ 	dbSelectArea("SX3")	
+	dbSkip()
+End
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Trava Registros                                                         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If ( SoftLock("AB3") )
+	aadd(aTravas,{ Alias() , RecNo() })
+Else
+	lTravas := .F.
+Endif
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta aHeader                                                ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+AT400Monta()
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta aCols                                                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+aHeader 	:= aClone(aHeaderAB4)
+nUsado 		:= Len(aHeader)
+nPosItem	:= aScan(aHeaderAB4,{|x| AllTrim(x[2])=="AB4_ITEM"})
+dbSelectArea("AB4")
+dbSetOrder(1)
+DbSeek(xFilial("AB4")+AB3->AB3_NUMORC)
+While ( !Eof() .And. xFilial("AB4") 	== AB4->AB4_FILIAL .And.;
+							AB3->AB3_NUMORC	== AB4->AB4_NUMORC )
+	If ( SoftLock("AB4") )
+		aadd(aTravas, { Alias() , RecNo() })
+	Else
+		lTravas := .F.
+	EndIf
+	aadd(aCols,Array(nUsado))
+   aadd(aColsAB5,aClone(aAux))
+	For nCntFor := 1 To nUsado
+		If ( aHeader[nCntFor][10] != "V" )
+			aCols[Len(aCols)][nCntFor] := FieldGet(FieldPos(aHeader[nCntFor][2]))
+		Else
+			aCols[Len(aCols)][nCntFor] := CriaVar(aHeader[nCntFor][2])
+		EndIf
+	Next nCntFor
+	aAux := {}
+	dbSelectArea("AB5")
+	dbSetOrder(1)
+	If ( DbSeek(xFilial("AB5")+AB3->AB3_NUMORC+AB4->AB4_ITEM) )
+      While ( !Eof() .And. xFilial("AB5") == AB5->AB5_FILIAL .And.;
+									M->AB3_NUMORC	== AB5->AB5_NUMORC .And.;
+									AB4->AB4_ITEM	== AB5->AB5_ITEM )
+			If ( SoftLock("AB5") )
+				aadd(aTravas, { Alias() , RecNo() })
+			Else
+				lTravas := .F.
+			EndIf
+			aadd(aAux,Array(Len(aHeaderAB5)+1))
+			For nCntFor := 1 To Len(aHeaderAB5)
+				If ( aHeaderAB5[nCntFor][10] != "V" )
+					aAux[Len(aAux)][nCntFor] := FieldGet(FieldPos(aHeaderAB5[nCntFor][2]))
+				Else
+					aAux[Len(aAux)][nCntFor] := CriaVar(aHeaderAB5[nCntFor][2])
+				EndIf
+			Next nCntFor
+			aAux[Len(aAux)][Len(aHeaderAB5)+1] := .F.
+			dbSelectArea("AB5")
+			dbSkip()					
+		End
+		aadd(aColsAB5,aClone(aAux))
+	Else
+		aadd(aAux,Array(Len(aHeaderAB5)+1))
+		For nCntFor := 1 To Len(aHeaderAB5)
+			aAux[Len(aAux)][nCntFor] := CriaVar(aHeaderAB5[nCntFor][2])
+		Next nCntFor
+		aAux[Len(aAux)][nPosItem] := "01"
+		aAux[Len(aAux)][Len(aHeaderAB5)+1] := .F.
+		aadd(aColsAB5,aClone(aAux))
+	EndIf
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Aqui eh verificado se o item esta amarrado a alguma OS que foi baixada.³
+	//³ Quando isto acontece a alteracao nao eh permitida.                     ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	dbSelectArea("AB7")
+	dbSetOrder(1)
+	If ( !Empty(AB4->AB4_NUMOS) .And. DbSeek(xFilial("AB7")+AB4->AB4_NUMOS) )
+      If ( AB7->AB7_TIPO!="1" )
+			If ( lExclui )
+				Help(" ",1,"AT400TIPOS")
+			EndIf
+			lExclui := .F.
+		EndIf
+   EndIf
+
+	dbSelectArea("AB4")
+	dbSkip()					
+End
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Atualiza picture ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cPictureTot	:= PesqPict("AB5","AB5_TOTAL",14,M->AB3_MOEDA) 
+
+If ( lTravas .And. lExclui )
+	If Type("lAt400Auto")=="U" .Or. !lAt400Auto
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Habilita a Tecla F4                                          ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		SetKey(VK_F4,{||AT400F4(oGetD)})
+	    
+		aSizeAut := MsAdvSize( .T. ) 
+		aObjects := {}                       
+		AAdd( aObjects, { 315,  70, .T., .t. } )
+		AAdd( aObjects, { 100, 100, .t., .t. } )
+		AAdd( aObjects, { 100,   8, .t., .f. } )
+		
+		aInfo := { aSizeAut[ 1 ], aSizeAut[ 2 ], aSizeAut[ 3 ], aSizeAut[ 4 ], 3, 3 } 
+		aPosObj := MsObjSize( aInfo, aObjects ) 
+		
+		aPosGet := MsObjGetPos(aSizeAut[3]-aSizeAut[1],315,;
+				{{005,072,115,178,223,287}} )
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Monta tela de entrada                                                   ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		DEFINE MSDIALOG oDlg TITLE CADASTRO FROM aSizeAut[7],0 TO aSizeAut[6],aSizeAut[5] PIXEL 
+		EnChoice( "AB3" ,nReg,nOpcx,,,,,APOSOBJ[1],,3,,,,,,.T.)
+		oGetD := MsGetDados():New(aPosObj[2,1],aPosObj[2,2],aPosObj[2,3],aPosObj[2,4],nOpcx,"AT400LinOk","AT400TudOk","+AB4_ITEM",.F.)
+		
+		nLinIni := aPosObj[3,1] 
+		
+		@ nLinIni,aPosGet[1,1] SAY STR0008 SIZE 60,09 OF oDlg PIXEL //"Total: "
+		@ nLinIni,aPosGet[1,2] SAY oSay1 VAR Transform(n1, cPictureTot) SIZE 40,09 OF oDlg PIXEL 
+		@ nLinIni,aPosGet[1,3] SAY STR0009 SIZE 60,09 OF oDlg PIXEL //"Total do Cliente: "
+		@ nLinIni,aPosGet[1,4] SAY oSay2 VAR Transform(n2, cPictureTot) SIZE 40,09 OF oDlg PIXEL 
+		@ nLinIni,aPosGet[1,5] SAY STR0010 SIZE 60,09 OF oDlg PIXEL //"Total do Fabricante: "
+		@ nLinIni,aPosGet[1,6] SAY oSay3 VAR Transform(n3, cPictureTot) SIZE 40,09 OF oDlg PIXEL 
+		oDlg:Cargo  := {|n1,n2,n3| oSay1:SetText( Transform(n1, cPictureTot) ),;
+									oSay2:SetText( Transform(n2, cPictureTot) ),;
+									oSay3:SetText( Transform(n3, cPictureTot) ) }
+		At400Total(oDlg,.F.)
+		ACTIVATE MSDIALOG oDlg ON INIT At400Bar(oDlg,{||nOpca:=1,oDlg:End()},{||oDlg:End()},nOpcX,oGetD)
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Desabilita a Tecla F4                                        ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		SetKey(VK_F4,Nil)
+	Else
+		If EnchAuto(cAlias,aAutoCab,{|| Obrigatorio(aGets,aTela)}) .And.;
+			MsGetDAuto(aAutoItens,"AT400LinOk",{|| AT400TudOk() },aAutoCab,aRotina[nOpcX][4]) .And. At400F4()
+			nOpcA := 1
+		EndIf
+	EndIf	
+EndIf
+If ( nOpcA == 1 )
+	Begin Transaction
+		If ( AT400Grava(3)  )
+			EvalTrigger()
+			While ( GetSX8Len() > nSaveSx8 )
+				ConfirmSX8()
+			End
+		EndIf
+	End Transaction
+EndIf
+While ( GetSX8Len() > nSaveSx8 )
+	RollBackSX8()
+End
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Destrava os registros                                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+For nCntFor := 1 To Len(aTravas)
+	dbSelectArea(aTravas[nCntFor,1])
+	dbGoto(aTravas[nCntFor,2])
+	MsUnLock()
+Next nCntFor
+
+dbSelectArea(aArea[1])
+dbSetOrder(aArea[2])
+dbGoto(aArea[3])
+Return(.T.)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Funcao    ³At400Efet ³ Autor ³ Eduardo Riera         ³ Data ³ 02.10.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Efetiva Or‡amentos                                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³ Nenhum                                                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ ExpC1 = Alias do arquivo                                   ³±±
+±±³          ³ ExpN1 = Numero do registro                                 ³±±
+±±³          ³ ExpN2 = Numero da opcao selecionada                        ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Analista      ³Manutencao Efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³16/05/2006³Cleber Martinez³Bops 98346: Localizacao do modulo SIGATEC.  ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+Function At400Efet(cAlias,nReg,nOpc)
+
+Local aSavRot 	:= aClone(aRotina)		//Backup do array aRotina
+Local cQuery  	:= ""					//Query a ser executada
+Local cArqInd 	:= CriaTrab(,.F.)		//Nome do arq. temporario
+Local cMarca	:= GetMark()			//Indica se o orcam. esta marcado
+Local nIndex	:= 0					//Indice do arq. temporario a ser utilizado
+
+aRotina := { 	{ STR0011,"At400Visua",0,2},;	//"Visualiza"
+					{ STR0012,"At400GrvOs",0,4} }	//"Ord.Servi‡o"
+					
+AjustaSX1() 
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Parametros                                                             ³
+//³                                                                        ³
+//³ MV_PAR01 - Cliente de                                                  ³
+//³ MV_PAR02 - Cliente ate                                                 ³
+//³ MV_PAR03 - Emissao de                                                  ³
+//³ MV_PAR04 - Emissao ate                                                 ³
+//³ MV_PAR05 - Chamado de                                                  ³
+//³ MV_PAR06 - Chamado ate                                                 ³
+//³ MV_PAR07 - Qual moeda                                                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If ( Pergunte("ATA400",.T.) )
+	If Recmoeda( dDatabase, MV_PAR07 ) <= 0
+		//"Não existe taxa cadastrada para a moeda selecionada: " # "Atenção"
+		MsgAlert(STR0034 + StrZero(MV_PAR07,1), STR0035)
+		aRotina := aClone(aSavRot)
+		Return .F.
+	EndIf
+	cQuery += "AB3_FILIAL=='"+xFilial("AB3")+"'.And."
+	cQuery += "AB3_STATUS=='A'.And."
+	cQuery += "AB3_CODCLI>='"+MV_PAR01+"'.And."
+	cQuery += "AB3_CODCLI<='"+MV_PAR02+"'.And."
+	cQuery += "Dtos(AB3_EMISSA)>='"+Dtos(MV_PAR03)+"'.And."
+	cQuery += "Dtos(AB3_EMISSA)<='"+Dtos(MV_PAR04)+"'.And."
+	cQuery += "AB3_NUMORC>='"+MV_PAR05+"'.And."
+	cQuery += "AB3_NUMORC<='"+MV_PAR06+"'"
+    dbSelectArea("AB3")
+	dbSetOrder(1)
+	IndRegua("AB3",cArqInd,IndexKey(),,cQuery)
+	nIndex := RetIndex("AB3")
+	#IFNDEF TOP
+		dbSetIndex(cArqInd+OrdBagExt())
+	#ENDIF
+	dbSetOrder(nIndex+1)
+	dbGotop()
+	If ( !Eof() .And. !Bof() )
+		MarkBrow("AB3","AB3_OK",,,,cMarca)
+	Else
+		Help(" ",1,"REGNOIS")
+	EndIf
+	dbSelectArea("AB3")
+    RetIndex("AB3")
+	dbClearFilter()
+	Ferase(cArqInd+OrdBagExt())
+EndIf
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Retorna as Situacao de Entrada                                          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+aRotina := aClone(aSavRot)
+Return(.T.)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³AT400MONTA  ³ Autor ³Eduardo Riera        ³ Data ³ 30.09.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Monta aHeader                                              ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe   ³ Void AT400MONTA(Void)                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ TECA400                                                    ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Function AT400MONTA()
+
+Local nUsado   := 0
+Local aArea    := { Alias() , IndexOrd() , Recno() }
+Local aAreaAB4 := { AB4->(IndexOrd()), AB4->(Recno()) }
+Local aAreaAB5 := { AB5->(IndexOrd()), AB5->(Recno()) }
+Local aHeader  := {}
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta aHeader do AB4                                         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+aHeader := {}
+dbSelectArea("SX3")
+dbSetOrder(1)
+DbSeek("AB4")
+nUsado := 0
+While ( !Eof() .And. SX3->X3_ARQUIVO == "AB4" )
+	If ( X3USO(SX3->X3_USADO) .And. cNivel >= SX3->X3_NIVEL )
+		AADD(aHeader,{ AllTrim(X3Titulo()),;
+							SX3->X3_CAMPO,;
+							SX3->X3_PICTURE,;
+							SX3->X3_TAMANHO,;
+							SX3->X3_DECIMAL,;
+							SX3->X3_VALID,;
+							SX3->X3_USADO,;
+							SX3->X3_TIPO,;
+							SX3->X3_ARQUIVO,;
+							SX3->X3_CONTEXT } )
+		nUsado++
+	Endif
+	dbSkip()
+End
+aHeaderAB4 := aClone(aHeader)
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta aHeader do AB5                                         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+aHeader := {}
+dbSelectArea("SX3")
+dbSetOrder(1)
+DbSeek("AB5")
+nUsado := 0
+While ( !Eof() .And. SX3->X3_ARQUIVO == "AB5" )
+	If ( X3USO(SX3->X3_USADO) .And. cNivel >= SX3->X3_NIVEL )
+		AADD(aHeader,{ AllTrim(X3Titulo()),;
+							SX3->X3_CAMPO,;
+							SX3->X3_PICTURE,;
+							SX3->X3_TAMANHO,;
+							SX3->X3_DECIMAL,;
+							SX3->X3_VALID,;
+							SX3->X3_USADO,;
+							SX3->X3_TIPO,;
+							SX3->X3_ARQUIVO,;
+							SX3->X3_CONTEXT } )
+		nUsado++
+	Endif
+	dbSkip()
+End
+aHeaderAB5 := aClone(aHeader)
+
+dbSelectArea("AB4")
+dbSetOrder(aAreaAB4[1])
+dbGoto(aAreaAB4[2])
+
+dbSelectArea("AB5")
+dbSetOrder(aAreaAB5[1])
+dbGoto(aAreaAB5[2])
+
+dbSelectArea(aArea[1])
+dbSetOrder(aArea[2])
+dbGoto(aArea[3])
+Return(.T.)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Funcao    ³At400GrvOs³ Autor ³ Eduardo Riera         ³ Data ³ 02.10.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Gera a Ordem de Servi‡o                                    ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³ Void                                                       ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ Void                                                       ³±±
+±±³          ³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao Efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³          ³               ³                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+Function At400GrvOs()
+
+Processa({|| At400Proc() })
+
+If ExistBlock("AT400GOS")
+	Execblock("AT400GOS",.F.,.F.)
+Endif
+
+CloseBrowse()
+Return(.T.)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Funcao    ³At400Proc ³ Autor ³ Eduardo Riera         ³ Data ³ 02.10.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Processamento da Efetivacao de OS                          ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³ Void                                                       ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao Efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³          ³               ³                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Static ;
+Function At400Proc()
+
+Local nCntFor 			:= 0
+Local uCampo			:= ""
+Local lTravas			:= .T.
+Local aTravas			:= {}
+Local nUsado			:= 0
+Local nPosItem			:= 0
+Local aAux				:= {}
+Local nSaveSX8       := GetSX8Len()
+Private aCols			:= {}
+Private aHeader		:= {}
+Private aHeaderAB4   := {}
+Private AHeaderAB5	:= {}
+Private aColsAB5		:= {}
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Monta aHeader                                                           ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+aT400Monta()
+aHeader	:= aClone(aHeaderAB4)
+nUsado	:= Len(aHeader)
+nPosItem := aScan(aHeaderAB5,{|x| AllTrim(x[2])=="AB5_SUBITE"})
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Processamento da MarkBrowse                                             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea("AB3")
+dbGotop() //IndRegua()
+ProcRegua(LastRec())
+While ( !Eof() )
+	If ( IsMark("AB3_OK",ThisMark(),ThisInv()) .AND. SoftLock("AB3")) .AND. At400MoedaOK()
+		lTravas	:= .T.
+		aTravas	:= {}
+		aCols		:= {}
+		aColsAb5 := {}
+		aAux     := {}
+		aHeader	:= aClone(aHeaderAB4)
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Cria Variaveis de Memoria da Enchoice                ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		dbSelectArea("AB3")
+		aadd(aTravas , { Alias() , RecNo() })
+		For nCntFor := 1 To FCount()
+			uCampo := FieldName(nCntFor)
+        	M->&(uCampo) := AB3->(FieldGet(FieldPos(uCampo)))
+		Next nCntFor
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Monta Acols                                          ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		dbSelectArea("AB4")
+		dbSetOrder(1)
+		DbSeek(xFilial("AB4")+M->AB3_NUMORC)
+		While ( !Eof() .And. xFilial("AB4") == AB4->AB4_FILIAL .And.;
+									M->AB3_NUMORC	== AB4->AB4_NUMORC )
+			aadd(aCols,Array(nUsado+1))
+			For nCntFor := 1 To nUsado
+				If ( aHeader[nCntFor][10] != "V" )
+					aCols[Len(aCols)][nCntFor] := FieldGet(FieldPos(aHeader[nCntFor][2]))
+				Else
+					aCols[Len(aCols)][nCntFor] := CriaVar(aHeader[nCntFor][2])
+				EndIf
+				If ( AllTrim(aHeader[nCntFor][2])=="AB4_TIPO" )
+					If AB4->AB4_TIPO == "1" 
+						aCols[Len(aCols)][nCntFor] := "2"
+					EndIf 	
+				EndIf
+			Next nCntFor
+			aCols[Len(aCols)][nUsado+1] := .F.
+			aAux := {}
+			dbSelectArea("AB5")
+			dbSetOrder(1)
+			If ( DbSeek(xFilial("AB5")+M->AB3_NUMORC+AB4->AB4_ITEM) )
+				While ( !Eof() .And. xFilial("AB5") == AB5->AB5_FILIAL .And.;
+											M->AB3_NUMORC	== AB5->AB5_NUMORC .And.;
+											AB4->AB4_ITEM	== AB5->AB5_ITEM )
+					aadd(aAux,Array(Len(aHeaderAB5)+1))
+					For nCntFor := 1 To Len(aHeaderAB5)
+						If ( aHeaderAB5[nCntFor][10] != "V" )
+							aAux[Len(aAux)][nCntFor] := FieldGet(FieldPos(aHeaderAB5[nCntFor][2]))
+						Else
+							aAux[Len(aAux)][nCntFor] := CriaVar(aHeaderAB5[nCntFor][2])
+						EndIf
+					Next nCntFor
+					aAux[Len(aAux)][Len(aHeaderAB5)+1] := .F.
+					dbSelectArea("AB5")
+					If ( SoftLock("AB5") )
+						aadd(aTravas,{Alias(),RecNo()})
+					Else
+						lTravas := .F.
+					EndIf
+					dbSkip()					
+				End
+				aadd(aColsAB5,aClone(aAux))
+			Else
+				aadd(aAux,Array(Len(aHeaderAB5)+1))
+				For nCntFor := 1 To Len(aHeaderAB5)
+					aAux[Len(aAux)][nCntFor] := CriaVar(aHeaderAB5[nCntFor][2])
+				Next nCntFor
+				aAux[Len(aAux)][nPosItem] := "01"
+				aAux[Len(aAux)][Len(aHeaderAB5)+1] := .F.
+				aadd(aColsAB5,aClone(aAux))
+			EndIf
+			dbSelectArea("AB4")
+			If ( SoftLock("AB4") )
+				aadd(aTravas,{Alias(),RecNo()})
+			Else
+				lTravas := .F.
+			EndIf
+			dbSkip()					
+		End
+      Begin Transaction
+			at400Grava(2)
+			While ( GetSX8Len() > nSaveSx8 )
+				ConfirmSx8()
+			End	
+		End Transaction
+		For nCntFor := 1 To Len(aTravas)
+			dbSelectArea(aTravas[nCntFor][1])
+			dbGoto(aTravas[nCntFor][2])
+			MsUnLock()
+		Next nCntFor
+	EndIf
+	dbSelectArea("AB3")
+	dbSkip()
+	IncProc()
+End
+Return(.T.)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³AT400LinOk  ³ Autor ³Eduardo Riera        ³ Data ³ 30.09.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Validacao da Linha na GetDados                             ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe   ³ Logical AT400LinOk(Void)                                   ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ TECA400                                                    ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Function AT400LinOk(oGet)
+
+Local lRetorno := .T.
+Local nUsado   := Len(aHeader)
+Local nPosPrd  := aScan(aHeader,{|x| AllTrim(x[2])=="AB4_CODPRO"})
+Local nPosnSer := aScan(aHeader,{|x| AllTrim(x[2])=="AB4_NUMSER"})
+Local nPosPrb  := aScan(aHeader,{|x| AllTrim(x[2])=="AB4_CODPRB"})
+Local nCntFor  := 0
+Local l400LinOk:= ExistBlock("AT400LOK")
+
+If ( !aCols[n][nUsado+1] .And. ( Len(aCols) > 1.Or.!Empty(aCols[n][nPosPrd]) ))
+	If ( 	Empty(aCols[n][nPosPrd]) .Or.;
+			Empty(aCols[n][nPosnSer]) .Or.;
+			Empty(aCols[n][nPosPrb]) )
+		lRetorno := .F.
+		Help(" ",1,"AT400LIN01")
+	EndIf
+	If ( lRetorno )
+		For nCntFor := 1 To Len(aCols)
+			If (  aCols[n][nPosPrd]+aCols[n][nPosNSer]+aCols[n][nPosPrb]==;
+					aCols[nCntFor][nPosPrd]+aCols[nCntFor][nPosNSer]+aCols[nCntFor][nPosPrb] .And.;
+					n != nCntFor .And. !aCols[nCntFor][nUsado+1])
+				Help(" ",1,"AT400LIN02")
+				lRetorno := .F.
+			EndIf
+		Next nCntFor
+	EndIf
+	If ( lRetorno )
+		dbSelectArea("AA3")
+		dbSetOrder(1)
+		If ( !DbSeek(xFilial("AA3")+M->AB3_CODCLI+M->AB3_LOJA+aCols[n][nPosPrd]+aCols[n][nPosNSer]) )
+			Help(" ",1,"AT400LIN03")
+			lRetorno := .F.
+		EndIf
+	EndIf
+EndIf
+
+If Type("lAt400Auto")=="U" .Or. !lAt400Auto
+	At400Total(oGet:oWnd,.F.)
+EndIf
+
+If lRetorno .and. l400LinOk
+	lRetorno := Execblock("AT400LOK",.f.,.f.)
+Endif
+
+Return(lRetorno)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³AT400TudOk  ³ Autor ³Eduardo Riera        ³ Data ³ 30.09.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Validacao da GetDados                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe   ³ Logical AT400TudOk(Void)                                   ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ TECA400                                                    ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Function AT400TudOk()
+
+Local lRetorno := .T.
+Local nPosPrd  := aScan(aHeader,{|x| AllTrim(x[2])=="AB4_CODPRO"})
+Local nPosnSer := aScan(aHeader,{|x| AllTrim(x[2])=="AB4_NUMSER"})
+Local nUsado   := Len( aHeader )  
+Local nCntFor  := 0
+
+For nCntFor := 1 To Len(aCols)
+	If ( lRetorno ) .And. !aCols[ nCntFor, nUsado + 1 ] 
+		dbSelectArea("AA3")
+		dbSetOrder(1)
+		If ( !DbSeek(xFilial("AA3")+M->AB3_CODCLI+M->AB3_LOJA+aCols[nCntFor][nPosPrd]+aCols[nCntFor][nPosNSer]) )
+			Help(" ",1,"AT400TUDOK")
+			lRetorno := .F.
+		EndIf
+	EndIf
+Next nCntFor   
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Validacao do Usuario                                         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If lRetorno 
+	If ExistBlock( "AT400TOK" ) 
+		lRetorno := ExecBlock( "AT400TOK", .F., .F. ) 
+	EndIf 
+EndIf
+
+Return(lRetorno)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³AT400F4     ³ Autor ³Eduardo Riera        ³ Data ³ 30.09.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Tratamento da tecla F4.                                    ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe   ³ Void AT400F4(Void)                                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ a,b,c                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ TECA400                                                    ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Function AT400F4(oGetD)
+
+Local oDlg												//Objeto Dialog
+Local oGetF4											//Objeto GetDados
+Local oSay1												//Objeto SAY
+Local oSay2												//Objeto SAY
+Local oSay3												//Objeto SAY
+Local nOpcA    := 0										//Opcao escolhida
+Local aArea    := { Alias(), IndexOrd() , Recno() }	//Dados da area atual
+Local aSavAcols:= {}									//Array copia do aCols
+Local nSavN		:= 0									//Copia da variavel N
+Local aAux		:= {} 									//Array auxiliar
+Local bSetKey											//Bloco de execucao dos SetKeys
+Local cPrompt  := STR0013 								//"Apontamento(s)"
+Local nCntFor  := 0										//Usada em lacos For...Next
+Local nUsado   := Len(aHeaderAB5)						//Tamanho do Header do AB5
+Local nPosItem := aScan(aHeaderAB5,{|x| AllTrim(x[2])=="AB5_SUBITE"})		//Posicao do campo Item no aHeaderAB5
+Local nPosPrd  := aScan(aHeaderAB4,{|x| AllTrim(x[2])=="AB4_CODPRO"})		//Posicao do campo Produto no aHeaderAB4
+Local nPosNSer := aScan(aHeaderAB4,{|x| AllTrim(x[2])=="AB4_NUMSER"})		//Posicao do campo Nr Serie no aHeaderAB4
+Local nItAcols := If(Type("N")=="U",1,N)									//Item selecionado no aCols
+Local cProduto := ""									//Codigo do produto
+Local cNumSer  := "" 									//Nr. de serie
+Local lAltera  := .F.									//Indica se e alteracao do Orcamento
+Local lInclui  := .F. 									//Indica se e inclusao do Orcamento
+Local lRetorno := .T.     								//Indica o retorno da funcao
+
+PRIVATE aColsMain 										//Copia do aCols principal
+PRIVATE nMAIN := nItAcols								//Guarda item do aCols selecionado
+
+If aRotina[ nOpcF4, 4 ] == 3
+	lInclui := .T. 
+ElseIf aRotina[ nOpcF4, 4 ] == 4 	 
+	lAltera := .T.      
+EndIf 
+
+aSavAcols	:= aClone(aCols)
+aColsMain   := aClone(aCols) 
+nSavN			:= nItAcols
+cProduto    := aSavaCols[nItAcols][nPosPrd]
+cNumSer		:= aSavaCols[nItAcols][nPosNSer]
+aHeader		:= aClone(aHeaderAB5)
+If ( Empty(aColsAB5) .Or. Len(aColsAB5)<=nItAcols )
+	aadd(aAux,Array(nUsado+1))
+	For nCntFor := 1 To nUsado
+		aAux[1][nCntFor] := CriaVar(aHeaderAB5[nCntFor][2],.T.)
+	Next nCntFor
+	aAux[1][nUsado+1] := .F.
+	aAux[1][nPosItem] := "01"
+	For nCntFor := Len(aColsAB5)+1 To ( nItAcols )
+		aadd(aColsAB5,aClone(aAux))
+	Next nCntFor
+EndIf
+aCols	:= aClone(aColsAB5[nItAcols])
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Posiciona Registros                                                     ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea("SA1")
+dbSetOrder(1)
+DbSeek(xFilial("SA1")+M->AB3_CODCLI+M->AB3_LOJA)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Atualiza picture ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cPictureTot	:= PesqPict("AB5","AB5_TOTAL",14,M->AB3_MOEDA) 
+
+If Type("lAt400Auto")=="U" .Or. !lAt400Auto
+	bSetKey  := SetKey(VK_F4,)
+	SetKey(VK_F4,Nil)
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Salva o aCols   de Entrada e Desabilita o Paint da Primeira GetDados    ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	oGetD:oBrowse:lDisablePaint := .T.
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Monta a GetDados                                                        ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	DEFINE MSDIALOG oDlg TITLE cPrompt From 10,0 to 28,80
+	@ 016,04 SAY RetTitle("AB3_CODCLI")+" "+M->AB3_CODCLI+"-"+M->AB3_LOJA+"/"+SA1->A1_NOME PIXEL
+	@ 026,04 SAY RetTitle("AB4_CODPRO")+" "+cProduto+RetTitle("AB4_NUMSER")+" "+cNumSer PIXEL  
+	oGetF4 := MsGetDados():New(39,4,125,313,nOpcF4,"At400F4LOk","AllwaysTrue","+AB5_SUBITE",.T.,NIL,NIL,NIL,NUMITENS)
+	@ 128,005 SAY STR0008 SIZE 60,09 OF oDlg PIXEL //"Total: "
+	@ 128,065 SAY oSay1 PROMPT 0 PICTURE cPictureTot SIZE 40,09 OF oDlg PIXEL
+	@ 128,105 SAY STR0009 SIZE 60,09 OF oDlg PIXEL //"Total do Cliente: "
+	@ 128,165 SAY oSay2 PROMPT 0 PICTURE cPictureTot SIZE 40,09 OF oDlg PIXEL 
+	@ 128,205 SAY STR0010 SIZE 60,09 OF oDlg PIXEL //"Total do Fabricante: "
+	@ 128,265 SAY oSay3 PROMPT 0 PICTURE cPictureTot SIZE 40,09 OF oDlg PIXEL 
+	oDlg:Cargo  := {|n1,n2,n3| oSay1:SetText(n1),;
+								oSay2:SetText(n2),;
+								oSay3:SetText(n3) }
+	At400Total(oDlg,.T.)
+	ACTIVATE MSDIALOG oDlg ON INIT EnchoiceBar(oDlg,{||nOpca:=1,if(oGetF4:TudoOk(),oDlg:End(),nOpca:=0)},{||oDlg:End()})
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Volta a situacao anterior                                               ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	SetKey(VK_F4,Nil)
+	SetKey(VK_F4,bSetKey)  
+
+	If ( nOpcA == 1 ) .And. ( lAltera .Or. lInclui ) 
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Ponto de entrada apos a confirmacao do apontamento                     ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If ExistBlock( "AT400APN" ) 
+			ExecBlock( "AT400APN", .F., .F. ) 
+		EndIf 			
+		aColsAB5[nItAcols] := aClone(aCols)
+		At400Total(oGetD:oWnd,.F.)
+	EndIf
+	oGetD:oBrowse:lDisablePaint := .F.
+Else
+	If MsGetDAuto(aAutoApont,"AT400F4LOk",{|| .T. },aAutoCab,aRotina[nOpcF4][4])
+		aColsAB5[nItAcols] := aClone(aCols)
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Ponto de entrada apos a confirmacao do apontamento                     ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If ExistBlock( "AT400APN" ) 
+			ExecBlock( "AT400APN", .F., .F. ) 
+		EndIf 			
+	Else
+		lRetorno := .F.
+	EndIf
+EndIf
+
+aHeader 	:= aClone(aHeaderAB4)
+aCols		:= aClone(aSavACols) 
+aColsMain:= NIL 
+N			:= nSavN
+dbSelectArea(aArea[1])
+dbSetOrder(aArea[2])
+dbGoto(aArea[3])
+
+Return lRetorno
+
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³AT400F4LOk  ³ Autor ³Eduardo Riera        ³ Data ³ 30.09.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Validacao da Linha na GetDados 2                           ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe   ³ Logical AT400F4LOk(Void)                                   ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ TECA400                                                    ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Function AT400F4LOk(oGet)
+
+Local lRetorno := .T.
+Local nUsado   := Len(aHeaderAB5)
+Local nPosPrd  := aScan(aHeaderAB5,{|x| AllTrim(x[2])=="AB5_CODPRO"})
+Local nPosTipo := aScan(aHeaderAB5,{|x| AllTrim(x[2])=="AB5_CODSER"})
+Local nPosQtd  := aScan(aHeaderAB5,{|x| AllTrim(x[2])=="AB5_QUANT"})
+Local nPosUnit := aScan(aHeaderAB5,{|x| AllTrim(x[2])=="AB5_VUNIT"})
+Local nPosVlr  := aScan(aHeaderAB5,{|x| AllTrim(x[2])=="AB5_TOTAL"})
+Local nPosLista:= aScan(aHeaderAB5,{|x| AllTrim(x[2])=="AB5_PRCLIS"})
+
+If ( !aCols[n][nUsado+1] )
+	If ( 	Empty(aCols[n][nPosPrd]) .Or.;
+			Empty(aCols[n][nPosTipo]) .Or.;
+			Empty(aCols[n][nPosQtd]) .Or.;
+			Empty(aCols[n][nPosUnit]) .Or.;
+			Empty(aCols[n][nPosLista]) .Or.;
+         Empty(aCols[n][nPosVlr]) ) ;
+			.And. ( Len(aCols) > 1 .Or. !Empty(aCols[n][nPosPrd]))
+		lRetorno := .F.
+		Help(" ",1,"AT400F4L01")
+	EndIf
+	If ( NoRound(aCols[n][nPosQtd]*aCols[n][nPosUnit]) != NoRound(aCols[n][nPosVlr]) )
+		Help(" ",1,"AT400F4L02")
+		lRetorno := .F.
+	EndIf
+EndIf
+If Type("lAt400Auto")=="U" .Or. !lAt400Auto
+	At400Total(oGet:oWnd,.T.)
+EndIf
+Return(lRetorno)
+
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡„o    ³at400Eqpto³ Autor ³ Eduardo Riera         ³ Data ³ 29.09.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡„o ³ Valida a amarracao Produto X Equipamento                   ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe   ³ Void at400Eqpto()                                          ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ TECA400                                                    ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Function at400Eqpto()
+
+Local lRetorno		:= .F.
+Local cCampo		:= ReadVar()
+Local uConteudo   := &(ReadVar())
+Local nPosProd    := aScan(aHeader,{|x| AllTrim(x[2])=="AB4_CODPRO" })
+Local aArea       := { Alias() , IndexOrd() , RecNo() }
+
+Do Case
+	Case ( "AB4_CODPRO"$cCampo )
+		dbSelectArea("AA3")
+		dbSetOrder(1)
+		If ( DbSeek(xFilial("AA3")+M->AB3_CODCLI+M->AB3_LOJA+uConteudo) )
+			lRetorno := .T.
+		Else
+			Help(" ",1,"REGNOIS")
+		EndIf
+	Case ( "AB4_NUMSER"$cCampo )
+		dbSelectArea("AA3")
+		dbSetOrder(1)
+		If ( DbSeek(xFilial("AA3")+M->AB3_CODCLI+M->AB3_LOJA+aCols[n][nPosProd]+uConteudo) )
+			lRetorno := .T.
+		Else
+			Help(" ",1,"REGNOIS")
+		EndIf
+EndCase
+
+dbSelectArea(aArea[1])
+dbSetOrder(aArea[2])
+dbGoto(aArea[3])
+Return(lRetorno)
+
+/*
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡„o	 ³At400Bar  ³ Autor ³ Eduardo Riera         ³ Data ³ 21.09.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡„o ³ Mostra a EnchoiceBar na tela						       	  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso		 ³ TECA400  										          ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ ATUALIZACOES SOFRIDAS DESDE A CONSTRUCAO INICIAL.                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ PROGRAMADOR  ³ DATA   ³ BOPS ³  MOTIVO DA ALTERACAO                   ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Conrado Q.    ³23/10/06³111294³Quando for visualizacao do system tracke³±± 
+±±³              ³        ³      ³nao exibe o botao "System Tracker"      ³±± 
+±±ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static ;
+Function At400Bar(oDlg,bOk,bCancel,nOpc,oGetD)
+Local aButtons   := {}               
+Local aUsButtons := {} 
+Local lTECA400 := AtIsRotina("ATC010CON").Or.AtIsRotina("ATC020CON")
+
+If ( nOpc != 5 )
+	Aadd(aButtons,{"PRODUTO"  ,{|| At400F4(oGetD)}, STR0021, STR0027})  //"Apontamento..."
+EndIf            
+
+If nOpc == 2 .And. !AtIsRotina("AT400TRACK") 	
+	Aadd(aButtons,{"ORDEM",{|| At400Track()}, STR0026, STR0028 }) // "System Tracker"
+EndIf 	
+
+If ( nOpc != 3 ) .And. !lTeca400
+	Aadd(aButtons,{"IMPRESSAO",{|| TECR400(M->AB3_NUMORC)}, STR0022, STR0029})	//"Impress„o do Or‡amento Gravado"
+EndIf
+         
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Adiciona botoes do usuario na EnchoiceBar                              ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+If ExistBlock( "AT400BUT" ) 
+	aUsButtons := ExecBlock( "AT400BUT", .F., .F. )  
+	AEval( aUsButtons, { |x| AAdd( aButtons, x ) } ) 	 	
+EndIf 	
+
+Return (EnchoiceBar(oDlg,bOK,bcancel,,aButtons))
+ 
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³AT400Tab    ³ Autor ³Sergio Silveira      ³ Data ³ 26/06/01 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Funcao de Calculo do Preco de Tabela                       ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe   ³ ExpN1 := AT400Tab(ExpC1,ExpC2,ExpN2,ExpC3,ExpC4)           ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ ExpC1 -> Produto                                           ³±± 
+±±³          ³ ExpC2 -> Tabela de preco                                   ³±±
+±±³          ³ ExpN2 -> Quantidade                                        ³±±
+±±³          ³ ExpC3 -> Cliente                                           ³±±
+±±³          ³ ExpC4 -> Loja do Cliente                                   ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³ ExpN1 := Preco de tabela                                   ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ TECA400                                                    ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/ 
+
+Function AT400Tab(cProduto,cTabprec,nQtde,cCliente,cLoja,nMoeda)
+
+Local aArea   := GetArea() 
+Local nPrcVen := 0 
+
+dbSelectArea("SB1")
+dbSetOrder(1)
+If ( !Empty(cProduto) .And. DbSeek(xFilial("SB1")+cProduto,.F.) )
+	nPrcVen := MaTabPrVen(cTabPrec,cProduto,nQtde,cCliente,cLoja,nMoeda)
+EndIf
+
+RestArea( aArea ) 
+
+Return (nPrcVen)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Funcao    ³At400RDesc³ Autor ³ Eduardo Riera         ³ Data ³ 10.07.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Recalcula os descontos em cascata                          ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³ .t.                                                        ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³                                                            ³±±
+±±³          ³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao Efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³          ³               ³                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+Function At400RDesc()
+
+Local nCtnFor  := 0
+Local nCntFor2 := 0
+Local nPPrcLis := aScan(aHeaderAb5,{|x| AllTrim(x[2])=="AB5_PRCLIS"})
+Local nPVunit  := aScan(aHeaderAb5,{|x| AllTrim(x[2])=="AB5_VUNIT"})
+Local nPTotal  := aScan(aHeaderAb5,{|x| AllTrim(x[2])=="AB5_TOTAL"})
+Local nPQuant  := aScan(aHeaderAb5,{|x| AllTrim(x[2])=="AB5_QUANT"})
+Local nPrcVen  := 0
+Local nCntFor  := 0
+
+For nCntFor := 1 To Len(aColsAB5)
+	For nCntFor2 := 1 To Len(aColsAB5[nCntFor])
+		If ( M->AB3_DESC1 > 0 .Or.;
+				M->AB3_DESC2 > 0 .Or.;
+				M->AB3_DESC3 > 0 .Or.;
+				M->AB3_DESC4 > 0 )
+			nPrcVen := aColsAB5[nCntFor][nCntFor2][nPPrcLis]
+		EndIf
+		If ( M->AB3_DESC1 > 0 )
+			nPrcVen *= (( 100 - M->AB3_DESC1 )/100)
+		EndIf
+		If ( M->AB3_DESC2 > 0 )
+			nPrcVen *= (( 100 - M->AB3_DESC2 )/100)
+		EndIf
+		If ( M->AB3_DESC3 > 0 )
+			nPrcVen *= (( 100 - M->AB3_DESC3 )/100)
+		EndIf
+		If ( M->AB3_DESC4 > 0 )
+			nPrcVen *= (( 100 - M->AB3_DESC4 )/100)
+		EndIf
+		nPrcVen := NoRound(nPrcVen,TamSx3("AB5_VUNIT")[2])
+		If ( nPrcVen != 0 )
+			aColsAB5[nCntFor][nCntFor2][nPVunit] := nPrcVen
+			aColsAB5[nCntFor][nCntFor2][nPTotal] := aColsAB5[nCntFor][nCntFor2][nPQuant]*aColsAB5[nCntFor][nCntFor2][nPVunit]
+		EndIf
+	Next nCntFor2
+Next nCntFor2
+Return(.T.)
+
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Funcao    ³at400Desc ³ Autor ³ Eduardo Riera         ³ Data ³ 10.07.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Calcula o Preco com Desconto                               ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³ Preco com Desconto em cascata                              ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ Nenhum                                                     ³±±
+±±³          ³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao Efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³          ³               ³                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+Function At400Desc()
+
+Local nPPrcLis 	:= aScan(aHeader,{|x| AllTrim(x[2])=="AB5_PRCLIS"})
+Local nPPrcVen    := aScan(aHeader,{|x| AllTrim(x[2])=="AB5_VUNIT"})
+Local nPrcVen		:= 0
+
+nPrcVen := aCols[n][nPPrcLis]
+If ( M->AB3_DESC1 > 0 )
+	nPrcVen *= (( 100 - M->AB3_DESC1 )/100)
+EndIf
+If ( M->AB3_DESC2 > 0 )
+	nPrcVen *= (( 100 - M->AB3_DESC2 )/100)
+EndIf
+If ( M->AB3_DESC3 > 0 )
+	nPrcVen *= (( 100 - M->AB3_DESC3 )/100)
+EndIf
+If ( M->AB3_DESC4 > 0 )
+	nPrcVen *= (( 100 - M->AB3_DESC4 )/100)
+EndIf
+nPrcVen := NoRound(nPrcVen,TamSx3("AB5_VUNIT")[2])
+If ( nPrcVen == 0 )
+	nPrcVen := aCols[n][nPPrcVen]
+Endif
+Return(nPrcVen)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Funcao    ³At400Total³ Autor ³ Eduardo Riera         ³ Data ³ 07.01.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³Totalizacao da Janela                                       ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³Nenhum                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³oDlg    : Objeto da Janela                                  ³±±
+±±³          ³nItem   : Item da Getdados Principal                        ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao Efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³          ³               ³                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+Static Function At400Total(oDlg,lF4)
+
+Local nUsado	:= Len(aHeaderAB5)
+Local nCntFor	:= 0
+Local nCntFor2	:= 0
+Local nPosProd 	:= aScan(aHeaderAB5,{|x| AllTrim(x[2])=="AB5_CODPRO"})
+Local nPosTotal	:= aScan(aHeaderAB5,{|x| AllTrim(x[2])=="AB5_TOTAL"})
+Local nPosSer	:= aScan(aHeaderAB5,{|x| AllTrim(x[2])=="AB5_CODSER"})
+Local nTotGer	:= 0
+Local nTotCli	:= 0
+Local nTotFab	:= 0
+If ( lF4 )
+	For nCntFor := 1 To Len(aCols)
+		If ( Len(aCols[nCntFor])==nUsado .Or. !aCols[nCntFor][nUsado+1] )
+			nTotCli	+= AtVlrPagto(aCols[nCntFor][nPosSer],aCols[nCntFor][nPosTotal],"C")
+			nTotFab	+= AtVlrPagto(aCols[nCntFor][nPosSer],aCols[nCntFor][nPosTotal],"F")
+			nTotGer  += aCols[nCntFor][nPosTotal]
+		EndIf
+	Next nCntFor
+Else
+	For nCntFor := 1 To Len(aColsAB5)
+		For nCntFor2 := 1 To Len(aColsAB5[nCntFor])
+			If ( Len(aColsAB5[nCntFor][nCntFor2])==nUsado .Or. !aColsAB5[nCntFor][nCntFor2][nUsado+1] )
+				nTotCli	+= AtVlrPagto(aColsAB5[nCntFor][nCntFor2][nPosSer],aColsAB5[nCntFor][nCntFor2][nPosTotal],"C")
+				nTotFab	+= AtVlrPagto(aColsAB5[nCntFor][nCntFor2][nPosSer],aColsAB5[nCntFor][nCntFor2][nPosTotal],"F")
+				nTotGer  += aColsAB5[nCntFor][nCntFor2][nPosTotal]
+			EndIf
+		Next nCntFor2
+	Next nCntFor
+EndIf
+Eval(oDlg:Cargo,nTotGer,nTotCli,nTotFab)
+Return(.T.) 
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Funcao    ³At400Track³ Autor ³ Sergio Silveira       ³ Data ³09/01/2002³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Faz o tratamento da chamada do System Tracker              ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³ .T.                                                        ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ Nenhum                                                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao Efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³10/09/2006³Conrado Q.     ³-BOPS: 111294: Salva e restaura as variaveis³±±
+±±³          ³               ³estaticas utilizadas em Dialogos.           ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function At400Track() 
+
+Local aEnt     := {}								// Itens para rastreamento
+Local cNumOrc  := M->AB3_NUMORC						// Numero do orcamento
+Local nPosItem := GDFieldPos( "AB4_ITEM" ) 			// Posicao do item AB4_ITEM
+Local nLoop    := 0 								// Utilizado no loop
+Local oOldDlg        := oDlg						// Salva as variaveis estaticas
+Local oOldSay1       := oSay1						// Salva as variaveis estaticas
+Local oOldSay2       := oSay2                  		// Salva as variaveis estaticas
+Local oOldSay3       := oSay3						// Salva as variaveis estaticas
+Local cOldPictureTot := cPictureTot					// Salva as variaveis estaticas
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Carrega os itens para rastreamento          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+For nLoop := 1 To Len( aCols ) 
+	AAdd( aEnt, { "AB4", cNumOrc + aCols[ nLoop, nPosItem ] } ) 
+Next nLoop 
+
+MaTrkShow( aEnt ) 
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Restaura as variaveis estaticas, pois a rotina MaTrShow ³
+//³reabre a janela TECA400 novamente, caso solicitado pelo ³
+//³usuario.                                                ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+oDlg		:= oOldDlg
+oSay1		:= oOldSay1
+oSay2		:= oOldSay2
+oSay3		:= oOldSay3
+cPictureTot	:= cOldPictureTot
+           
+Return( .T. ) 
+
+/*/
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡„o    ³MyTeca400 ³ Autor ³ Kleber Dias Gomes     ³ Data ³01/06/2004 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³          ³Rotina de teste da rotina automatica do programa Teca400     ³±±
+±±³          ³                                                             ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³Nenhum                                                       ³±±
+±±³          ³                                                             ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³Nenhum                                                       ³±±
+±±³          ³                                                             ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡„o ³Esta rotina tem como objetivo efetuar testes na rotina de    ³±±
+±±³          ³chamado tecnico.                                             ³±±
+±±³          ³                                                             ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Uso       ³ Materiais                                                   ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Function MyTeca400()
+
+Local lOk      := .T.
+Local aCabec   := {}
+Local aItem    := {}
+Local aItens   := {}
+Local aApont   := {}
+Local aAponts  := {}
+Local cNumOrc  := ""
+
+PRIVATE lMsErroAuto := .F.
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//| Abertura do ambiente                                         |
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+ConOut(Repl("-",80))
+PREPARE ENVIRONMENT EMPRESA "99" FILIAL "01" MODULO "TEC" TABLES "SA1","SE4","DA0","AA3","AAG","AA5","SB1","AA5","AB6","AB4","AB8"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//| Verificacao do ambiente para teste                           |
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea("SA1")
+dbSetOrder(1)
+If !SA1->(DbSeek(xFilial("SA1")+"00000101"))
+	lOk := .F.
+	ConOut("Cadastrar Cliente: 000001 Loja: 01")
+EndIf
+
+dbSelectArea("SB1")
+dbSetOrder(1)
+If !SB1->(DbSeek(xFilial("SB1")+"000001"))
+	lOk := .F.
+	ConOut("Cadastrar Produto: 000001")
+EndIf
+
+dbSelectArea("SB1")
+dbSetOrder(1)
+If !SB1->(DbSeek(xFilial("SB1")+"000002"))
+	lOk := .F.
+	ConOut("Cadastrar Produto: 000002")
+EndIf
+
+dbSelectArea("SE4")
+dbSetOrder(1)
+If !SE4->(DbSeek(xFilial("SE4")+"001"))
+	lOk := .F.
+	ConOut("Cadastrar Condicao de Pagamento: 001")
+EndIf
+
+dbSelectArea("SE4")
+dbSetOrder(1)
+If !SE4->(DbSeek(xFilial("SE4")+"002"))
+	lOk := .F.
+	ConOut("Cadastrar Condicao de Pagamento: 002")
+EndIf
+
+dbSelectArea("AA3")
+dbSetOrder(1)
+If !AA3->(DbSeek(xFilial("AA3")+"00000101"+PadR("000001",15)+"123456"))
+	lOk := .F.
+	ConOut("Cadastrar Base Instalada Cliente/Loja: 000001/01 Produto: 000001 Série: 123456")
+EndIf
+
+dbSelectArea("AA3")
+dbSetOrder(1)
+If !AA3->(DbSeek(xFilial("AA3")+"00000101"+PadR("000002",15)+"654321"))
+	lOk := .F.
+	ConOut("Cadastrar Base Instalada Cliente/Loja: 000001/01 Produto: 000002 Série: 654321")
+EndIf
+
+dbSelectArea("AAG")
+dbSetOrder(1)
+If !AAG->(DbSeek(xFilial("AAG")+"000001"))
+	lOk := .F.
+	ConOut("Cadastrar Ocorrencia: 000001")
+EndIf
+
+dbSelectArea("AA5")
+dbSetOrder(1)
+If !AA5->(DbSeek(xFilial("AA5")+"000001"))
+	lOk := .F.
+	ConOut("Cadastrar Servico: 000001")
+EndIf
+
+If lOk
+	ConOut(PadC("Teste de Inclusao da Orcamento",80))
+	ConOut("Inicio: "+Time())
+	cNumOrc := GetSXENum("AB3","AB3_NUMORC")
+	RollBackSx8()
+	aadd(aCabec,{"AB3_NUMORC",cNumOrc,Nil})
+	aadd(aCabec,{"AB3_CODCLI",SA1->A1_COD,Nil})
+	aadd(aCabec,{"AB3_LOJA"  ,SA1->A1_LOJA,Nil})
+	aadd(aCabec,{"AB3_EMISSA",dDataBase,Nil})
+	aadd(aCabec,{"AB3_ATEND" ,SubStr(cUsuario,7,15),Nil})
+	aadd(aCabec,{"AB3_CONPAG","001",Nil})
+	aadd(aCabec,{"AB3_HORA"  ,Time(),Nil})
+
+	aadd(aItem,{"AB4_ITEM"  ,StrZero(1,2),Nil})
+	aadd(aItem,{"AB4_TIPO"  ,"1",Nil})
+	aadd(aItem,{"AB4_CODPRO",AA3->AA3_CODPRO,Nil})
+	aadd(aItem,{"AB4_NUMSER",AA3->AA3_NUMSER,Nil})
+	aadd(aItem,{"AB4_CODPRB",AAG->AAG_CODPRB,Nil})
+	aadd(aItens,aItem)
+
+	aadd(aApont,{"AB5_ITEM"  ,StrZero(1,2),Nil})
+	aadd(aApont,{"AB5_SUBITE",StrZero(1,2),Nil})
+	aadd(aApont,{"AB5_CODPRO",SB1->B1_COD,Nil})
+	aadd(aApont,{"AB5_CODSER",AA5->AA5_CODSER,Nil})
+	aadd(aApont,{"AB5_QUANT",1,Nil})
+	aadd(aApont,{"AB5_VUNIT",100,Nil})
+	aadd(aApont,{"AB5_PRCLIS",100,Nil})
+	aadd(aAponts,aApont)
+
+	TECA400(,aCabec,aItens,aAponts,3)
+	If !lMsErroAuto
+		ConOut("Inclusao com sucesso! ")
+	Else
+		ConOut("Erro na inclusao!")
+	EndIf
+	aCabec := {}
+	aItem  := {}
+	aItens := {}
+	aApont := {}
+	aAponts:= {}
+
+	ConOut(PadC("Teste de Alteracao da Orcamento",80))
+	aadd(aCabec,{"AB3_NUMORC",cNumOrc,Nil})
+	aadd(aCabec,{"AB3_CODCLI",SA1->A1_COD,Nil})
+	aadd(aCabec,{"AB3_LOJA"  ,SA1->A1_LOJA,Nil})
+	aadd(aCabec,{"AB3_EMISSA",dDataBase,Nil})
+	aadd(aCabec,{"AB3_ATEND" ,SubStr(cUsuario,7,15),Nil})
+	aadd(aCabec,{"AB3_CONPAG","002",Nil})
+	aadd(aCabec,{"AB3_HORA"  ,Time(),Nil})
+
+	aadd(aItem,{"LINPOS","AB4_ITEM","01"})
+	aadd(aItem,{"AB4_ITEM"  ,StrZero(1,2),Nil})
+	aadd(aItem,{"AB4_TIPO"  ,"2",Nil})
+	aadd(aItem,{"AB4_CODPRO","000002",Nil})
+	aadd(aItem,{"AB4_NUMSER","654321",Nil})
+	aadd(aItem,{"AB4_CODPRB",AAG->AAG_CODPRB,Nil})
+	aadd(aItens,aItem)
+
+	aadd(aApont,{"LINPOS","AB5_SUBITE","01"})
+	aadd(aApont,{"AB5_SUBITE",StrZero(1,2),Nil})
+	aadd(aApont,{"AB5_CODPRO","000002",Nil})
+	aadd(aApont,{"AB5_CODSER",AA5->AA5_CODSER,Nil})
+	aadd(aApont,{"AB5_QUANT",1,Nil})
+	aadd(aApont,{"AB5_VUNIT",100,Nil})
+	aadd(aApont,{"AB5_PRCLIS",100,Nil})
+	aadd(aAponts,aApont)
+
+	TECA400(,aCabec,aItens,aAponts,4)
+	If !lMsErroAuto
+		ConOut("Alteracao com sucesso! ")
+	Else
+		ConOut("Erro na Alteracao!")
+	EndIf
+	aCabec := {}
+	aItem  := {}
+	aItens := {}
+	aApont := {}
+	aAponts:= {}
+
+	ConOut(PadC("Teste de Exclusao da Orcamento",80))
+	aadd(aCabec,{"AB3_NUMORC",cNumOrc,Nil})
+	aadd(aCabec,{"AB3_CODCLI",SA1->A1_COD,Nil})
+	aadd(aCabec,{"AB3_LOJA"  ,SA1->A1_LOJA,Nil})
+	aadd(aCabec,{"AB3_EMISSA",dDataBase,Nil})
+	aadd(aCabec,{"AB3_ATEND" ,SubStr(cUsuario,7,15),Nil})
+	aadd(aCabec,{"AB3_CONPAG","002",Nil})
+	aadd(aCabec,{"AB3_HORA"  ,Time(),Nil})
+
+	aadd(aItem,{"AB4_ITEM"  ,StrZero(1,2),Nil})
+	aadd(aItem,{"AB4_TIPO"  ,"2",Nil})
+	aadd(aItem,{"AB4_CODPRO","000002",Nil})
+	aadd(aItem,{"AB4_NUMSER","654321",Nil})
+	aadd(aItem,{"AB4_CODPRB",AAG->AAG_CODPRB,Nil})
+	aadd(aItens,aItem)
+
+	aadd(aApont,{"AB5_SUBITE",StrZero(1,2),Nil})
+	aadd(aApont,{"AB5_CODPRO","000002",Nil})
+	aadd(aApont,{"AB5_CODSER",AA5->AA5_CODSER,Nil})
+	aadd(aApont,{"AB5_QUANT",1,Nil})
+	aadd(aApont,{"AB5_VUNIT",100,Nil})
+	aadd(aApont,{"AB5_PRCLIS",100,Nil})
+	aadd(aAponts,aApont)
+
+	TECA400(,aCabec,aItens,aAponts,5)
+	If !lMsErroAuto
+		ConOut("Exclusao com sucesso! ")
+	Else
+		ConOut("Erro na Exclusao!")
+	EndIf
+	aCabec := {}
+	aItem  := {}
+	aItens := {}
+	aApont := {}
+	aAponts:= {}
+
+	ConOut("Fim  : "+Time())
+
+EndIf
+
+RESET ENVIRONMENT
+Return(.T.)
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Program   ³ At400Leg ³ Autor ³ Cleber Martinez       ³ Data ³12/04/2006³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡Æo ³ Exibe a legenda do Orcamento                               ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³ Nil                                                        ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ Nenhum                                                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³          ³               ³                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Function At400Leg() 
+
+BrwLegenda( cCadastro,  STR0031 , ;								//"Status"
+							{ { "BR_VERDE"  ,  STR0032  },; 	//"Aberto"
+							{ "BR_VERMELHO" ,  STR0033  } } )  	//"Encerrado"
+
+Return( Nil ) 
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³ AjustaSX1³ Autor ³ Cleber Martinez       ³ Data ³16/05/2006³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Inclui pergunta no SX1                                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ TECA400                                                    ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function AjustaSX1()    
+
+Local	aHelpPor := {}		//Help em Portugues
+Local	aHelpSpa := {}		//Help em Espanhol
+Local	aHelpEng := {}		//Help em Ingles
+
+aAdd(aHelpPor,"Selecione a moeda ")
+aAdd(aHelpSpa,"Seleccione la moneda ")
+aAdd(aHelpEng,"Select the currency " )
+
+PutSX1("ATA400", "07", "Qual moeda ?", "¿Que Moneda ?", "Which currency ?", "mv_ch7", "N", 1, 0, 1, "C", "", "", "", "", "mv_par07", ;
+"Moeda 1  ","Moneda 1   ","Currency 1 ","","Moeda 2   ","Moneda 2   ","Currency 2","Moeda 3","Moneda 3","Currency 3","Moeda 4","Moneda 4","Currency 4","Moeda 5","Moneda 5","Currency 5","","","","")	
+
+PutSX1Help("P.ATA40007.",aHelpPor,aHelpEng,aHelpSpa)
+             
+Return( .T. )
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³At400Moeda³ Autor ³ Cleber Martinez       ³ Data ³19/05/2006³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Verifica se a moeda do Orcamento esta cadastrada           ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ TECA400                                                    ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Function At400MoedaOK()
+Local lRet 		:= .T.					//Indica retorno da funcao
+Local aAreaAB3	:= AB3->(GetArea()) 	//Guarda a area corrente
+
+If (AB3->AB3_MOEDA != 0) .AND. ( AB3->( FieldPos("AB3_TXMOED") ) > 0 )
+	If AB3->AB3_TXMOED <= 0 
+		If Recmoeda( dDatabase, AB3->AB3_MOEDA ) <= 0         
+			//"Não existe taxa para a Moeda " #
+		    //" informada neste Orçamento. Favor cadastrá-la antes de efetivá-lo."
+		    //"Orçamento " ######
+			MsgAlert(  STR0036 + StrZero(AB3->AB3_MOEDA,1) + STR0037 , ;
+					 STR0038 + AB3->AB3_NUMORC )
+			lRet := .F.
+		EndIf
+	EndIf
+	
+EndIf  
+
+RestArea(aAreaAB3)
+
+Return (lRet)
+
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Funcao    ³At400Pict ³ Autor ³ Cleber Martinez       ³ Data ³ 05.06.06 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Atualiza picture dos valores do Rodape conforme Moeda      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³Nenhum                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³                                                            ³±±
+±±³          ³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao Efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³          ³               ³                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Function At400Pict()
+
+Local nMoeda := M->AB3_MOEDA			// Moeda informada no cabecalho
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Atualiza picture ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cPictureTot	:= PesqPict("AB5","AB5_TOTAL",14,nMoeda) 
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Efetua um refresh nos objetos c/ a nova Picture ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+oSay1:Refresh()
+oSay2:Refresh()
+oSay3:Refresh()
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Recalcula os totais do Rodape da tela  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+At400Total(oDlg, .F.)
+
+Return(.T.)

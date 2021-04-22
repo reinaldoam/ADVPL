@@ -1,0 +1,130 @@
+#include "rwmake.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³AGFATR12  º Autor ³ REINALDO MAGALHAES º Data ³  03/12/15   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³ GERAÇÃO DE ARQUIVO DE PRODUTOS PARA O SITE                 º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP6 IDE                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+User Function AGFATR12
+  Local oReport := nil
+  Local cPerg:= Padr("AGFATR12",10)
+
+  //Incluo/Altero as perguntas na tabela SX1
+  AjustaSX1(cPerg)
+  //gero a pergunta de modo oculto, ficando disponível no botão ações relacionadas
+  Pergunte(cPerg,.F.)
+
+  oReport := RptDef(cPerg)
+  oReport:PrintDialog()
+Return
+
+//////////////////////////////
+Static Function RptDef(cNome)
+  Local oReport := Nil
+  Local oSection1:= Nil
+  Local oSection2:= Nil
+
+  Local aOrdem := {}
+
+  oReport := TReport():New(cNome,"Listagem de Produtos",cNome,{|oReport| ReportPrint(oReport,aOrdem)},"Listagem de Produtos")
+  oReport:SetPortrait()
+  oReport:SetTotalInLine(.F.)
+
+  oReport:nFontBody	:= 8
+  oReport:nLineHeight := 48
+
+  //Relatorio por Codigo B1_COD/B1_DESC/A2_NREDUZ
+  oSection1:= TRSection():New(oReport, "Codigo", {},aOrdem, .F., .T.)
+  TRCell():New(oSection1,"B1_COD"    , "SB1TRB","Codigo"    ,"@!",15)
+  TRCell():New(oSection1,"B1_DESC"   , "SB1TRB","Descrição"	,"@!",40)
+  TRCell():New(oSection1,"A2_NREDUZ" , "SB1TRB","Fornecedor","@!",30)
+
+Return(oReport)
+  
+////////////////////////////////////////////
+Static Function ReportPrint(oReport,aOrdem)
+  Local oSection1 := oReport:Section(1)
+  Local cQuery    := ""
+  Local nOrdem    := oReport:Section(1):GetOrder()
+                           
+  //oBreak := TRBreak():New(oSection1,{|| SB1TRB->A2_NREDUZ},"",.F.)
+  //TRFunction():New(oSection1:Cell("A2_NREDUZ"), "QTDE", "COUNT",oBreak,"Qtde:",,,.F.,.F.)
+
+  oReport:SetTitle(oReport:Title())
+
+  //Monto minha consulta conforme parametros passado
+  cQuery := " SELECT B1_COD,B1_DESC,A2_NREDUZ"
+  cQuery += " FROM " + RetSqlName("SB1") + " A,"+ RetSqlName("SA2") + " C,"  
+  cQuery += " ("
+  cQuery += " SELECT DISTINCT D1_COD "
+  cQuery += " FROM " + RetSqlName("SD1")
+  cQuery += " WHERE D_E_L_E_T_ <> '*' AND D1_DTDIGIT >= '" + DToS(mv_par01) + "'"
+  cQuery += " AND D1_CF IN('2102','1102')"
+  cQuery += " )B"
+  cQuery += " WHERE A.D_E_L_E_T_ <> '*' AND C.D_E_L_E_T_ <> '*'"
+  cQuery += " AND B.D1_COD = B1_COD"
+  cQuery += " AND B1_PROC = A2_COD"
+  cQuery += " AND B1_XTPPROD = 'E'"
+  cQuery += " ORDER BY A2_NREDUZ"
+
+  //crio o novo alias
+  dbUseArea(.T.,"TOPCONN",TcGenQry(,,ChangeQuery(cQuery)),"SB1TRB",.T.,.T.)
+
+  dbSelectArea("SB1TRB")
+  
+  SB1TRB->(dbGoTop())
+
+  oReport:SetMeter(SB1TRB->(RecCount()))
+
+  //Irei percorrer todos os meus registros
+  Do while !Eof()
+	
+     If oReport:Cancel()
+	    Exit
+	 EndIf
+	
+	 //inicializo a de acordo com a ordem escolhida
+	 oReport:IncMeter()
+	
+	 //Defini a quebra a ser imprimida
+ 	 oSection1:Init()
+	 oSection1:Cell("A2_NREDUZ"):SetValue(SB1TRB->A2_NREDUZ)
+	 oSection1:Printline()
+	 xVar := SB1TRB->A2_NREDUZ
+	 bQuebra := {|| SB1TRB->A2_NREDUZ == xVar}
+
+	 //verifico se o codigo da NCM é mesmo, se sim, imprimo o produto
+	 Do while Eval(bQuebra)
+		oReport:IncMeter()
+		oSection1:Cell("B1_COD"):SetValue(SB1TRB->B1_COD)
+		oSection1:Cell("B1_DESC"):SetValue(SB1TRB->B1_DESC)
+		oSection1:Cell("A2_NREDUZ"):SetValue(SB1TRB->A2_NREDUZ)
+		oSection1:Printline()
+		SB1TRB->(dbSkip())
+	 Enddo
+	
+	 //finalizo a segunda seção para que seja reiniciada para o proximo registro
+	 oSection1:Finish()
+	
+	 //imprimo uma linha para separar uma NCM de outra
+	 oReport:ThinLine()
+	 oSection1:Finish()
+	 //
+  Enddo
+  Return
+  
+////////////////////////////////
+Static function AjustaSx1(cPerg)
+  //Aqui utilizo a função putSx1, ela cria a pergunta na tabela de perguntas
+  PutSx1(cPerg, "01", "Data Referencia"		, "", "", "mv_ch1", "D", tamSx3("D1_DTDIGIT")[1], 0, 0, "G", "", "", "", "", "mv_par01")
+Return

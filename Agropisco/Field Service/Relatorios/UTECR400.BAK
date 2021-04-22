@@ -1,0 +1,602 @@
+#INCLUDE "TECR400.CH"
+#INCLUDE "RWMAKE.CH"
+//#include "report.ch"
+
+#IFNDEF WINDOWS
+	#DEFINE PSAY SAY
+#ENDIF
+#DEFINE CHRCOMP If(aReturn[4]==1,15,18)
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³TECR400R3 ³ Autor ³ Eduardo Riera         ³ Data ³ 06.10.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³Impressao do Orcamento. (Antigo)                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³Nenhum                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³Nenhum                                                      ³±±
+±±³          ³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³18/05/2006³Cleber Martinez³Bops 98346: Localizacao do modulo SIGATEC.  ³±±
+±±³                                                                       ³±±
+±±³05/03/2008³Diego Rafael   ³Bops 98346: Atualização da impressão de     ³±±
+±±³                          ³somente Agropisco para a empresa que estiver³±±
+±±³                          ³sendo Usada no momento                      ³±±
+±±³                                                                       ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+User Function UTECR400(cOrcamento)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Define Variaveis                                                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Local Titulo  := OemToAnsi(STR0001) //"Impressao do Orcamento"
+Local cDesc1  := OemToAnsi(STR0002) //"     Este programa ira emitir os Orcamentos conforme os parametros"
+Local cDesc2  := OemToAnsi(STR0003) //"solicitados."
+Local cDesc3  := OemToAnsi(STR0004) //" "
+Local cString := "AB3"  // Alias utilizado na Filtragem
+Local lDic    := .F.    // Habilita/Desabilita Dicionario
+Local lComp   := .T.    // Habilita/Desabilita o Formato Comprimido/Expandido
+Local lFiltro := .T.    // Habilita/Desabilita o Filtro
+Local wnrel   := "UTECR400"    // Nome do Arquivo utilizado no Spool
+Local nomeprog:= "UTECR400"    // nome do programa
+
+Private Tamanho := "P" // P/M/G
+Private Limite  := 132 // 80/132/220
+Private aOrdem  := {}  // Ordem do Relatorio
+Private cPerg   := "ATR400"  // Pergunta do Relatorio
+Private aReturn := { STR0005, 1,STR0006, 1, 2, 1, "",1 } //"Zebrado"###"Administracao"
+						//[1] Reservado para Formulario
+						//[2] Reservado para N§ de Vias
+						//[3] Destinatario
+						//[4] Formato => 1-Comprimido 2-Normal
+						//[5] Midia   => 1-Disco 2-Impressora
+						//[6] Porta ou Arquivo 1-LPT1... 4-COM1...
+						//[7] Expressao do Filtro
+						//[8] Ordem a ser selecionada
+						//[9]..[10]..[n] Campos a Processar (se houver)
+
+Private lEnd    := .F.// Controle de cancelamento do relatorio
+Private m_pag   := 1  // Contador de Paginas
+Private nLastKey:= 0  // Controla o cancelamento da SetPrint e SetDefault
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Verifica as Perguntas Seleciondas                                       ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If ( !Empty(cOrcamento ) )
+	dbSelectArea("SX1")
+	dbSetOrder(1)
+	MsSeek(cPerg+"01")
+	RecLock("SX1")
+	SX1->X1_CNT01 := cOrcamento
+	MsUnLock()
+	dbSelectArea("SX1")
+	dbSetOrder(1)
+	MsSeek(cPerg+"02")
+	RecLock("SX1")
+	SX1->X1_CNT01 := cOrcamento
+	MsUnLock()
+EndIf
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Inclui novas perguntas no SX1³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+AjustaSX1()
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ MV_PAR01               Orcamento De                           ³
+//³ MV_PAR02               Orcamento Ate                          ³
+//³ MV_PAR03               Qual Moeda                             ³
+//³ MV_PAR04               Outras Moedas (Converter/Nao imprimir) ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Pergunte(cPerg,.F.)
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Envia para a SetPrinter                                                 ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+wnrel:=SetPrint(cString,wnrel,cPerg,@titulo,cDesc1,cDesc2,cDesc3,lDic,aOrdem,lComp,Tamanho,lFiltro)
+If ( nLastKey==27 )
+	dbSelectArea(cString)
+	dbSetOrder(1)
+	Set Filter to
+	Return
+Endif
+SetDefault(aReturn,cString)
+If ( nLastKey==27 )
+	dbSelectArea(cString)
+	dbSetOrder(1)
+	Set Filter to
+	Return
+Endif
+If ( ExistBlock("TECR400") )
+	Execblock("TECR400",.F.,.F.)
+Else
+#IFDEF WINDOWS
+	RptStatus({|lEnd| ImpDet(@lEnd,wnRel,cString,nomeprog,Titulo)},Titulo)
+#ELSE
+	ImpDet(.F.,wnrel,cString,nomeprog,Titulo)
+#ENDIF
+EndIf
+Return(.T.)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Program   ³ ImpDet   ³ Autor ³ Eduardo Riera         ³ Data ³02.07.1998³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³Controle de Fluxo do Relatorio.                             ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³Nenhum                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³Nenhum                                                      ³±±
+±±³          ³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³          ³               ³                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Static Function ImpDet(	lEnd,	wnrel,	cString,	nomeprog,;
+						Titulo)
+
+Local li      	:= 100 										// Contador de Linhas
+Local nFolha 	:= 01										// Nr. da folha	
+Local cbCont  	:= 0  										// Numero de Registros Processados
+Local aTotal  	:= { 0 , 0 , 0 , 0 , 0 , 0 }				// Array de totais do relatorio
+Local nAB5_VUNIT:= 0										// Conteudo do campo AB5_VUNIT
+Local nAB5_TOTAL:= 0										// Conteudo do campo AB5_TOTAL
+Local nDecs		:= Msdecimais(MV_PAR03)						// Nr. de casas decimais da Moeda escolhida p/ o relatorio
+Local lTaxa		:= ( AB3->( FieldPos("AB3_TXMOED") ) > 0 )	// Indica se existe o campo AB3_TXMOED
+Local cDesc     := ""
+Local aDesc     := {}
+Local nLen      := 0, nTam      := 0
+
+dbSelectArea(cString)
+SetRegua(LastRec())
+dbSetOrder(1)
+MsSeek(xFilial("AB3")+MV_PAR01,.T.)
+
+aLay    	:= RetLayOut()								// Array contendo o layout do relatorio
+
+While ( !Eof() .And. xFilial("AB3") == AB3->AB3_FILIAL .And.;
+							MV_PAR02       >= AB3->AB3_NUMORC )
+	nFolha := 01
+	#IFNDEF WINDOWS
+		If LastKey() = 286
+			lEnd := .T.
+		EndIf
+	#ENDIF
+	If lEnd
+		@ Prow()+1,001 PSAY STR0007 //"CANCELADO PELO OPERADOR"
+		Exit
+	EndIf
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Verifica se imprime outras moedas ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If MV_PAR04 == 2
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Nao imprimir orcamentos com moeda diferente da escolhida ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If (AB3->AB3_MOEDA <> 0) .AND. (AB3->AB3_MOEDA <> MV_PAR03)
+			AB3->(dbSkip())
+			Loop
+		EndIf
+	EndIf
+	
+	Li := Rt400Cabec(@nFolha)
+	dbSelectArea("AB4")
+//	dbSetOrder(1)
+	U_MsSetOrder("AB4","AB4_FILIAL+AB4_NUMORC+AB4_ITEM")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima                   
+	MsSeek(xFilial("AB4")+AB3->AB3_NUMORC)
+	
+	If AB4->AB4_TIPO # "0"
+	   MsgBox("Relatorio so deve ser utilizado para tipo de ENTRADA!","Atencao")
+	   Return
+	EndIf
+	
+	cDesc := Alltrim(MSMM(AB4_MEMO,468))
+	If !Empty(cDesc)
+	  nLen  := MlCount(cDesc,117)
+	  For nX := 1 to nLen
+	      AADD(aDesc,Memoline(cDesc,117,nX))
+	  Next
+	  nTam := 1
+	EndIf  
+	
+	While ( !Eof() .And. xFilial("AB4") ==AB4->AB4_FILIAL .And.;
+								AB3->AB3_NUMORC==AB4->AB4_NUMORC )
+		If ( Li > 54 )
+			//FmtLin({},aLay[22],,,@Li)
+			//FmtLin({},aLay[23],,,@Li)
+			//FmtLin({},aLay[24],,,@Li)
+			//FmtLin({},aLay[25],,,@Li)
+			nFolha++
+			Li := Rt400Cabec(@nFolha)
+		EndIf
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Posiciona Registros                                                     ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		dbSelectArea("AAG")
+//		dbSetOrder(1)
+		U_MsSetOrder("AAG","AAG_FILIAL+AAG_CODPRB")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima                   
+		MsSeek(xFilial("AAG")+AB4->AB4_CODPRB)
+		dbSelectArea("AA3")
+//		dbSetOrder(1)
+		U_MsSetOrder("AA3","AA3_FILIAL+AA3_CODCLI+AA3_LOJA+AA3_CODPRO+AA3_NUMSER")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima                   
+		MsSeek(xFilial("AA3")+AB3->AB3_CODCLI+AB3->AB3_LOJA+AB4->AB4_CODPRO+AB4->AB4_NUMSER)
+
+		FmtLin({ AB4->AB4_ITEM,;
+					X3Combo("AB4_TIPO",AB4->AB4_TIPO),;
+					AB4->AB4_CODPRO,;
+					Substr(Posicione("SB1",1,XFILIAL("SB1")+AB4->AB4_CODPRO+"01","B1_DESC"),1,25),;
+					AB4->AB4_NUMSER,;
+					AB4->AB4_CODPRB+"-"+AAG->AAG_DESCRI},aLay[14],,,@Li)
+					//AA3->AA3_CONTRT,;
+					//AA3->AA3_DTGAR,;
+					//AB4->AB4_NUMOS},aLay[14],,,@Li)
+		dbSelectArea("AB5")
+//		dbSetOrder(1)
+		U_MsSetOrder("AB5","AB5_FILIAL+AB5_NUMORC+AB5_ITEM+AB5_SUBITE")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima                   
+		If ( MsSeek(xFilial("AB5")+AB4->AB4_NUMORC+AB4->AB4_ITEM) )
+			FmtLin({},aLay[15],,,@Li)
+			FmtLin({},aLay[16],,,@Li)
+			FmtLin({},aLay[19],,,@Li)
+		EndIf
+		While ( !AB5->(Eof()) .And. xFilial("AB5")  == AB5->AB5_FILIAL .And.;
+									AB4->AB4_NUMORC == AB5->AB5_NUMORC .And.;
+									AB4->AB4_ITEM   == AB5->AB5_ITEM )
+			If ( Li > 54 )
+				//FmtLin({},aLay[22],,,@Li)
+				//FmtLin({},aLay[23],,,@Li)
+				//FmtLin({},aLay[24],,,@Li)
+				//FmtLin({},aLay[25],,,@Li)
+				nFolha++
+				Li := Rt400Cabec(@nFolha)
+				//FmtLin({},aLay[15],,,@Li)
+				//FmtLin({},aLay[16],,,@Li)
+				//FmtLin({},aLay[19],,,@Li)
+			EndIf
+			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Converte os valores para a moeda selecionada ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			nAB5_VUNIT := Round(xMoeda(AB5->AB5_VUNIT, AB3->AB3_MOEDA, MV_PAR03, AB3->AB3_EMISSA, nDecs+1, IIf(lTaxa,AB3->AB3_TXMOED,0)), nDecs)
+			nAB5_TOTAL := Round(xMoeda(AB5->AB5_TOTAL, AB3->AB3_MOEDA, MV_PAR03, AB3->AB3_EMISSA, nDecs+1, IIf(lTaxa,AB3->AB3_TXMOED,0)), nDecs)
+			
+			FmtLin({ 	AB5->AB5_SUBITE,;
+						AB5->AB5_CODPRO,;
+						AB5->AB5_DESPRO,;
+						AB5->AB5_CODSER,;
+						PadL(TransForm(AB5->AB5_QUANT, PesqPict("AB5","AB5_QUANT")),14),;
+						PadL(TransForm(nAB5_VUNIT, PesqPict("AB5","AB5_VUNIT",14,MV_PAR03)),14),;
+						PadL(TransForm(nAB5_TOTAL, PesqPict("AB5","AB5_TOTAL",19,MV_PAR03)),19)},;
+						aLay[18],,,@Li)
+			aTotal[01] += nAB5_TOTAL
+			aTotal[02] += AtVlrPagto(AB5->AB5_CODSER,nAB5_TOTAL,"C")
+			aTotal[03] += AtVlrPagto(AB5->AB5_CODSER,nAB5_TOTAL,"F")
+			dbSelectArea("AB5")
+			AB5->(dbSkip())
+		End
+		If ( aTotal[01] > 0 )
+			FmtLin({},aLay[19],,,@Li)
+			FmtLin({TransForm(aTotal[02],PesqPict("AB5","AB5_TOTAL",18,MV_PAR03)),;
+					TransForm(aTotal[03],PesqPict("AB5","AB5_TOTAL",18,MV_PAR03))},aLay[20],,,@Li)
+			aTotal[04] += aTotal[01]
+			aTotal[05] += aTotal[02]
+			aTotal[06] += aTotal[03]
+			aTotal[01] := 0
+			aTotal[02] := 0
+			aTotal[03] := 0
+		EndIf
+		FmtLin({},aLay[13],,,@Li)
+		dbSelectArea("AB4")
+		AB4->(dbSkip())
+	End
+//	While ( Li < 54 )
+//		FmtLin({},aLay[26],,,@Li)
+//		FmtLin({},aLay[13],,,@Li)
+//	End
+//	FmtLin({},aLay[22],,,@Li)
+//	FmtLin({},aLay[23],,,@Li)
+	FmtLin({ TransForm(aTotal[05],PesqPict("AB5","AB5_TOTAL",18,MV_PAR03)),;
+			 TransForm(aTotal[06],PesqPict("AB5","AB5_TOTAL",18,MV_PAR03))},aLay[50],,,@Li)
+	FmtLin({},aLay[21],,,@Li)
+	FmtLin({If(nLen > 0 .and. nTam <= nLen,aDesc[nTam],Space(117))},aLay[22],,,@Li); nTam++
+	FmtLin({},aLay[23],,,@Li)
+	FmtLin({If(nLen > 0 .and. nTam <= nLen,aDesc[nTam],Space(117))},aLay[24],,,@Li); nTam++
+	FmtLin({},aLay[25],,,@Li)
+	FmtLin({If(nLen > 0 .and. nTam <= nLen,aDesc[nTam],Space(117))},aLay[26],,,@Li); nTam++
+	FmtLin({},aLay[27],,,@Li)
+	FmtLin({If(nLen > 0 .and. nTam <= nLen,aDesc[nTam],Space(117))},aLay[28],,,@Li); nTam++
+    //FmtLin({},aLay[29],,,@Li)
+	//FmtLin({},aLay[30],,,@Li)
+	//FmtLin({},aLay[31],,,@Li) 
+	//FmtLin({},aLay[32],,,@Li)
+	//FmtLin({},aLay[33],,,@Li)
+	//FmtLin({},aLay[34],,,@Li)
+	//FmtLin({},aLay[35],,,@Li)
+	//FmtLin({},aLay[36],,,@Li)
+	//FmtLin({},aLay[37],,,@Li)
+	//FmtLin({},aLay[38],,,@Li)
+	//FmtLin({},aLay[39],,,@Li)
+	//FmtLin({},aLay[40],,,@Li)
+	//FmtLin({},aLay[41],,,@Li)
+	//FmtLin({},aLay[42],,,@Li)
+	//FmtLin({},aLay[43],,,@Li)
+	//FmtLin({},aLay[44],,,@Li)
+	//FmtLin({},aLay[45],,,@Li) 
+	//FmtLin({},aLay[41],,,@Li) 
+	//FmtLin({},aLay[42],,,@Li)
+	//FmtLin({},aLay[43],,,@Li)
+	//FmtLin({},aLay[44],,,@Li)
+	//FmtLin({},aLay[45],,,@Li)
+	//FmtLin({},aLay[46],,,@Li)
+	//FmtLin({},aLay[47],,,@Li)
+	//FmtLin({},aLay[48],,,@Li) INIBIDO PARA REDUZIR O TAMANHO DO RELATÓRIO - WILLIAMS MESSA 
+	FmtLin({},aLay[49],,,@Li)
+	//FmtLin({},aLay[50],,,@Li)
+	FmtLin({},aLay[51],,,@Li)
+	FmtLin({},aLay[52],,,@Li)
+	FmtLin({},aLay[53],,,@Li)
+	FmtLin({},aLay[54],,,@Li)
+	FmtLin({},aLay[55],,,@Li)
+	FmtLin({},aLay[56],,,@Li)
+	FmtLin({},aLay[57],,,@Li)
+	FmtLin({},aLay[58],,,@Li) 
+	FmtLin({},aLay[59],,,@Li)
+	FmtLin({},aLay[60],,,@Li)
+	FmtLin({},aLay[61],,,@Li)
+	FmtLin({},aLay[62],,,@Li)
+	FmtLin({},aLay[63],,,@Li) 
+	FmtLin({},aLay[64],,,@Li)
+	aTotal[04] := 0
+	aTotal[05] := 0
+	aTotal[06] := 0
+	dbSelectArea("AB3")
+	AB3->(dbSkip())
+	cbCont++
+	IncRegua()
+End
+dbSelectArea(cString)
+dbClearFilter()
+Set Device To Screen
+Set Printer To
+If ( aReturn[5] = 1 )
+	dbCommitAll()
+	OurSpool(wnrel)
+Endif
+MS_FLUSH()
+Return(.T.)
+
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Funcao    ³RetLayOut ³ Autor ³ Eduardo Riera         ³ Data ³ 06.10.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Retorna o LayOut a ser impresso                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³ Array com o LayOut                                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ Nenhum                                                     ³±±
+±±³          ³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao Efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³          ³               ³                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+Static Function RetLayOut()
+                                                     
+Local cEmail,nTamRua
+Local aLay := Array(64)
+//
+//                     1         2         3         4         5         6         7         8         9        10        11        12        13        14        15        16        17        18        19        20        21        22
+//           01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+
+  SM0->(DbSelectArea("SM0"))
+  SM0->(DbGoTop())
+  While (!SM0->(EOF()))
+    if SM0->M0_CODIGO == cEmpAnt
+       If cEmpAnt == "03"
+          cEmail := "E-mail:acompressores@hotmail.com "
+          ElseIf cEmpAnt == "01"
+              cEmail := "E-mail:agropisco@agropisco.com.br - www.agropisco.com.br"
+       EndIf
+       Exit
+    End 
+    SM0->(DbSkip()) 
+  End
+
+//            "| " + Trim(SM0->M0_NOMECOM) + " - Fone:  "  + Trim(SM0->M0_TEL) + "| PROTOCOLO DE ENTRADA DE EQUIPAMENTO | Orcamento Previsto: ###### | Folha: ######|"
+aLay[01] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+//aLay[02] := "| AGROPISCO COM. & SERV.DE EQUIP.- Fone: 2121-4650| PROTOCOLO DE ENTRADA DE EQUIPAMENTO | Orcamento Previsto: ###### | Folha: ######|"
+aLay[02] := "| " + Trim(SM0->M0_NOMECOM) + " - Fone:  "  + Trim(SM0->M0_TEL) + "| PROTOCOLO DE ENTRADA DE EQUIPAMENTO | Orcamento Previsto: ###### | Folha: ######|"
+aLay[03] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+aLay[04] := "|                                                                                                                                  |"
+aLay[05] := "|Cliente  : ######/## - ########################################                                                                   |"
+aLay[06] := "|Emissao  : ##########                                                                                                             |"
+aLay[07] := "|Moeda    : #                                                                                                                      |"
+aLay[08] := "|Atendente: ####################                                                                                                   |"
+aLay[09] := "|Cond.Pag.: ### - ##################################                                 Contato: ##################                   |"
+aLay[10] := "|      	                                                                                                                            |"
+aLay[11] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+aLay[12] := "|It|   Tipo   |    Produto    |  Descrição do Produto       |      Nr.Serie      |                Problema                         |"
+aLay[13] := "+--+----------+---------------+-----------------------------+----------------------------------------------------------------------+"
+aLay[14] := "|##|##########|###############|#############################|####################|#################################################|"
+aLay[15] := "+--+----------+---------------+----------------------+------+--------------------+-------------------------------------------------+"
+aLay[16] := STR0014 // "|  |IT|Produto        |Descricao                     |Servico|  Quantidade  |Valor Unitario|    Valor Total    | Valor Fabricante  |"
+aLay[17] := "+--+------------------+-------+----------------------+-------+--------------+--------------+-------------------+-------------------+"
+aLay[18] := "|->|##|###############|##############################|#######|##############|##############|###################|                   |"
+aLay[19] := "+--+------------------+------------------------------+-------+--------------+--------------+-------------------+-------------------+"
+aLay[20] := STR0015 // "|                                                                            SUB-TOTAL     | ##################| ##################|"
+aLay[21] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+aLay[22] := "|OBSERVACAO:"+AB3->AB3_OBS1+                                        "############################################################# |"
+aLay[23] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+                        //000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000111111111111111111
+                        //000000000111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999000000000011111111
+                        //123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
+aLay[24] := "|"+AB3->AB3_OBS2+                                                   "############################################################# |"
+aLay[25] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+aLay[26] := "|"+AB3->AB3_OBS3+                                                   "############################################################# |"
+aLay[27] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+aLay[28] := "|            ##################################################################################################################### |"
+/*aLay[29] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+aLay[30] := "|Causa Provavel:                                                                                                                   |"
+aLay[31] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+aLay[32] := "|                                                                                                                                  |"
+aLay[33] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+aLay[34] := "|                                                                                                                                  |"
+aLay[35] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+aLay[36] := "|                                                                                                                                  |"
+aLay[37] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+aLay[38] := "|Servico Executado:                                                                                                                |"
+aLay[39] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+aLay[40] := "|                                                                                                                                  |"
+aLay[41] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+aLay[42] := "|                                                                                                                                  |"
+aLay[43] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+aLay[44] := "|                                                                                                                                  |"
+aLay[45] := "+------------------------------------------------------------------------------------------+-------------------+-------------------+"
+aLay[46] := "|Sugestao :                                                                                                                        |"
+aLay[47] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+aLay[48] := "|                                                                                                                                  |"*/
+aLay[49] := "+------------------------------------------------------------------------------------------+-------------------+-------------------+"
+aLay[50] := STR0016 // "|                                                                            TOTAL GERAL   | ##################| ##################|"
+aLay[51] := "   "
+aLay[52] := "   "
+aLay[53] := "Eu _____________________________________,  portador  do  RG n._____________________,  declaro  estar  ciente e de acordo que a nao"
+aLay[54] := "retirada do equipamento acima mencionado no  prazo  maximo  de  90 dias,  independente  de qualquer  notificacao judicial,  tem  o"
+aLay[55] := "equipamento em questao executado e seus valores revestidos em favor da  AGROPISCO  COMERCIO E  SERVICOS DE EQUIPAMENTOS LTDA  para"  
+aLay[56] := "cobrir eventuais despesas com pecas, mao de obra e locacao e tambem de armazenagem."
+aLay[57] := " " 
+aLay[58] := "                     PARA CADA ORÇAMENTO NÃO APROVADO, SERÁ COBRADO O VALOR DE R$ 20,00 NO ATO DA ENTREGA.                          "  
+aLay[59] := "+------------------------------------------+--------------------------------------------+------------------------------------------+"
+aLay[60] := "|                                          |                                            |                                          |"
+aLay[61] := "|                                          |                                            |                                          |"
+aLay[62] := "+------------------------------------------+--------------------------------------------+------------------------------------------+"
+aLay[63] := "|              CLIENTE                     |                 TECNICO                    |                 GERENTE                  |"
+aLay[64] := "+----------------------------------------------------------------------------------------------------------------------------------+"
+
+
+Return(aLay)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Funcao    ³Rt400Cabec³ Autor ³ Eduardo Riera         ³ Data ³ 06.10.98 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Cabecalho do Relatorio                                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³ ExpN1 : Numero da Linha                                    ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ ExpN1 : Numero da Folha                                    ³±±
+±±³          ³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao Efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³          ³               ³                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+Static Function Rt400Cabec(nFolha)
+
+Local Li := 0
+Local aLay := RetLayOut()
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Posiciona Registros                                                     ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea("SA1")
+//dbSetOrder(1)
+U_MsSetOrder("SA1","A1_FILIAL+A1_COD+A1_LOJA")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima                   
+MsSeek(xFilial("SA1")+AB3->AB3_CODCLI+AB3->AB3_LOJA)
+dbSelectArea("SE4")
+//dbSetOrder(1)
+U_MsSetOrder("SE4","E4_FILIAL+E4_CODIGO")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima                   
+MsSeek(xFilial("SE4")+AB3->AB3_CONPAG)
+
+Li := 0
+@ Li,000 PSAY AvalImp(Limite)
+FmtLin({},aLay[01],,,@Li)
+FmtLin({AB3->AB3_NUMORC,StrZero(nFolha,5)},aLay[02],,,@Li)
+FmtLin({},aLay[03],,,@Li)
+FmtLin({},aLay[04],,,@Li)
+FmtLin({AB3->AB3_CODCLI,AB3->AB3_LOJA,SA1->A1_NOME},aLay[05],,,@Li)
+FmtLin({AB3->AB3_EMISSA},aLay[06],,,@Li)
+FmtLin({SuperGetMv("MV_MOEDA"+Str(MV_PAR03,1))},aLay[07],,,@Li)
+FmtLin({AB3->AB3_ATEND},aLay[08],,,@Li)
+FmtLin({AB3->AB3_CONPAG,;
+			SE4->E4_DESCRI,;
+			AllTrim(AB3->AB3_CONTAT)},aLay[09],,,@Li)/*,;
+			AllTrim(TransForm(AB3->AB3_DESC2,PesqPict("AB3","AB3_DESC2"))),;
+			AllTrim(TransForm(AB3->AB3_DESC3,PesqPict("AB3","AB3_DESC3"))),;
+			AllTrim(TransForm(AB3->AB3_DESC4,PesqPict("AB3","AB3_DESC4")))},aLay[09],,,@Li)*/
+FmtLin({},aLay[10],,,@Li)
+FmtLin({},aLay[11],,,@Li)
+FmtLin({},aLay[12],,,@Li)
+FmtLin({},aLay[13],,,@Li)
+
+Return(Li)
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³AjustaSX1 ºAutor  ³Cleber Martinez     º Data ³  18/05/06   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Inclui perguntas no SX1                                     º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ TECR400                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function AjustaSX1()
+Local aHelpPor := {}	//Texto help em Portugues
+Local aHelpEng := {}	//Texto help em Espanhol
+Local aHelpSpa := {}	//Texto help em Ingles
+
+//Inclui pergunta Qual Moeda?
+aAdd(aHelpPor,"Moeda a ser considerada na impressao ")  
+AADD(aHelpPor,"do relatório.      					") 
+aAdd(aHelpSpa,"Moneda a considerarse en la impresion")
+aAdd(aHelpSpa," del informe.						") 
+aAdd(aHelpEng,"Currency to be considered when 		")
+aAdd(aHelpEng,"printing the report.					")
+
+PutSX1("ATR400", "03", "Qual moeda ?", "¿Que Moneda ?", "Which currency ?", "mv_ch3", "N", 1, 0, 1, "C", "", "", "", "", "mv_par03",;
+"Moeda 1  ","Moneda 1   ","Currency 1 ","","Moeda 2   ","Moneda 2   ","Currency 2","Moeda 3","Moneda 3","Currency 3","Moeda 4","Moneda 4","Currency 4","Moeda 5","Moneda 5","Currency 5","","","","")	
+PutSX1Help("P.ATR40003.",aHelpPor,aHelpEng,aHelpSpa)
+
+//Inclui pergunta Outras Moedas?
+aHelpPor := {}
+aHelpEng := {}
+aHelpSpa := {}
+aAdd(aHelpPor,"Moeda a ser convertida na  impressao ")
+aAdd(aHelpPor,"do relatório.    					")
+aAdd(aHelpSpa,"Moneda que sera convertida en la 	")
+aAdd(aHelpSpa,"impresion del informe.    			")
+aAdd(aHelpEng,"Currency to be converted when 		")
+aAdd(aHelpEng,"printing the report.					")
+
+PutSx1("ATR400","04","Outras Moedas ?","¿Otras Monedas ?","Other currency ?","mv_ch4","N",1,0,0,"C","","","","","mv_par04","Converter","Convertir","Convert","","Não imprimir","No imprimir","No print","","","","","","","","","")
+PutSX1Help("P.ATR40004.",aHelpPor,aHelpEng,aHelpSpa)
+Return

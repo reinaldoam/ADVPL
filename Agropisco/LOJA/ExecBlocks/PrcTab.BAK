@@ -1,0 +1,86 @@
+#Include "rwmake.ch"
+/*_________________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------+-------------+-------+---------------------+------+---------------+¦¦
+¦¦¦ Função    ¦ PrcTab      ¦ Autor ¦ Reinaldo Magalhaes  ¦ Data ¦ 25/10/07      ¦¦¦
+¦¦+-----------+-------------+-------+---------------------+------+---------------+¦¦
+¦¦¦ Descriçäo ¦ Gravacao do preco de venda no faturamento a partir da rotina de  ¦¦¦
+¦¦¦           ¦ atualizacao de preco da venda assistida.                         ¦¦¦
+¦¦+-----------+------------------------------------------------------------------+¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯*/
+USER FUNCTION PrcTab(cCodigo, nPreco)
+  Local cItem, nAscii
+  Local cAlias:= Alias()
+  Local cUsr := Upper(GetMv("MV_USRPRC"))
+  
+  //- Produtos
+  //DbSelectArea("SB1")
+  //dbSetOrder(1)
+  U_MsSetOrder("SB1","B1_FILIAL+B1_COD")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+                        
+  //- Verificando se o usuario pode baixar o preço
+  If ACOLS[N,1] < SB0->B0_PRV1 .And. !(UPPER(Trim(SubStr(cUsuario,7,15))) $ cUsr)
+     Alert("Não é possivel baixar preço de venda!")
+     nPreco:= SB0->B0_PRV1
+     ACOLS[N,1] := SB0->B0_PRV1
+  Else    
+     //- Item da tebela de precos
+     //DbSelectArea("DA1")
+     //dbSetOrder(2)
+     U_MsSetOrder("DA1","DA1_FILIAL+DA1_CODPRO+DA1_CODTAB+DA1_ITEM")//Incluído por Ulisses Jr em 24/04/08 em substituição a linha acima
+ 
+     If DA1->(dbSeek(xFilial("DA1")+cCodigo))
+        RecLock("DA1",.F.)
+	    DA1->DA1_PRCVEN := nPreco
+ 	    DA1->(MsUnLock())
+     Else 
+        cItem := VerUltimo("DA1_ITEM","DA1")/*
+	    If Asc(Left(cItem,1)) >= 48 .and. Asc(Left(cItem,1)) <= 57
+	       If Val(cItem) < 9999
+		      cItem := strzero(Val(cItem)+1,4)
+		   EndIf
+	    Else
+		   nAscii := Asc(Left(cItem,1))
+		   If (Val(substr(cItem,2,len(cItem)))+1) > 999
+		      nAscii++
+		      cItem := chr(nAscii)+"000"
+		   Else
+		      cItem := chr(nAscii)+StrZero((Val(substr(cItem,2,len(cItem)))+1),3)
+		   EndIf
+	    EndIf
+	    */
+	    cItem := Soma1(cItem,4)//Utilizado por Ulisses Jr em 30/04/08 em substituíção ao trecho comentado acima
+	 
+  	    RecLock("DA1",.T.)
+	    DA1->DA1_FILIAL  := xFilial("DA1")
+	    DA1->DA1_ITEM    := cItem
+	    DA1->DA1_CODTAB  := "001"
+	    DA1->DA1_CODPRO  := cCodigo
+	    DA1->DA1_PRCVEN  := nPreco
+	    DA1->DA1_ATIVO   := "1"
+	    DA1->DA1_TPOPER  := "4"
+	    DA1->DA1_QTDLOT  := 999999.99
+	    DA1->DA1_MOEDA   := 1
+	    DA1->(MsUnLock())
+     Endif
+     //- Atualizando cadastro do produto 
+     //RecLock("SB1",.F.)
+     //SB1->B1_PRV1 := nPreco
+     //SB1->(MsUnLock())     
+     M->B1_PRV1 := nPreco
+  Endif  
+  dbselectArea(cAlias)
+RETURN nPreco
+
+//////////////////////////////////////////
+Static Function VerUltimo(cCampo,cTabela)
+  Local cSql := "", cValor := ""
+
+  cSql := "SELECT MAX("+cCampo+") as CAMPO FROM "+RetSqlName(cTabela)+" WHERE D_E_L_E_T_ <> '*'"
+  dbUseArea( .T., "TOPCONN", TcGenQry(,,CHANGEQUERY(cSql)), "Wrk", .T., .F. )
+
+  cValor := Wrk->CAMPO
+  Wrk->(dbCloseArea())
+
+Return cValor
